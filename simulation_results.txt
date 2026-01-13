@@ -1,0 +1,19 @@
+============================================================
+MONTE CARLO SIMULATION RESULTS - ORB STRATEGY
+============================================================
+
+Days Simulated:    100
+Total Trades:      100
+Winning Trades:    65
+Win Rate:          65.0%
+
+Starting Balance:  $50,000.00
+Total P&L:         $250,850.00
+Final Balance:     $300,850.00
+
+Max Drawdown:      $1,712.50
+Drawdown Limit:    $5,000.00
+
+EXPECTANCY:        $2,508.50 per trade
+
+SURVIVED: YES

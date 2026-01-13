@@ -1,0 +1,125 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tsxbot"
+version = "0.1.0"
+description = "Automated ES/MES futures trading bot for TopstepX ProjectX API"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "TSXBot Team" }
+]
+keywords = ["trading", "futures", "ES", "MES", "TopstepX", "ProjectX", "algorithmic-trading"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+
+dependencies = [
+    "tsxapipy @ git+https://github.com/mceesincus/tsxapi4py.git",
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "python-dotenv>=1.0",
+    "click>=8.0",
+    "pytz>=2024.1",
+    "openai>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-asyncio>=0.21",
+    "mypy>=1.0",
+    "ruff>=0.1",
+    "types-PyYAML",
+    "types-pytz",
+]
+
+[project.scripts]
+tsxbot = "tsxbot.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/your-org/tsxbot"
+Repository = "https://github.com/your-org/tsxbot"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/tsxbot"]
+
+[tool.ruff]
+src = ["src", "tests"]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG",    # flake8-unused-arguments
+    "SIM",    # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "F841",   # unused local variable
+    "E402",   # module level import not at top of file (legacy)
+    "F401",   # unused imports (legacy)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tsxbot"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_return_any = false
+warn_unused_ignores = true
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_configs = true
+show_error_codes = true
+files = ["src/tsxbot"]
+
+[[tool.mypy.overrides]]
+module = [
+    "tsxapipy.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["src/tsxbot"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

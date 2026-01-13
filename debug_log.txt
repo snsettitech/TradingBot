@@ -1,0 +1,6 @@
+INFO: ORB Range Formed: 5041.20275119131037 - 5048.0
+INFO: Processing signal: TradeSignal(symbol='ES', direction=<SignalDirection.LONG: 'long'>, timestamp=datetime.datetime(2026, 1, 1, 9, 51), quantity=1, entry_type=<OrderType.MARKET: 'market'>, limit_price=None, stop_ticks=8, target_ticks=16, reason='ORB High Breakout 5048.5 >= 5048.0 + 0.50')
+INFO: Order placed: 72570193-b792-4ddb-bc26-381cbfea1d4f ES OrderSide.BUY 1 OrderType.MARKET
+INFO: Fill received: Fill(id='c9665766-0d07-429c-ba5f-73ccb058b072', order_id='72570193-b792-4ddb-bc26-381cbfea1d4f', symbol='ES', side=<OrderSide.BUY: 'BUY'>, qty=1, price=Decimal('5048.5'), timestamp=datetime.datetime(2026, 1, 1, 9, 51))
+INFO: Order placed: a00925ac-b5f7-4bea-92af-148d95241f5b ES OrderSide.SELL 1 OrderType.MARKET
+INFO: Fill received: Fill(id='4aef2214-a35e-40ce-bd74-f3bcba8df1f7', order_id='a00925ac-b5f7-4bea-92af-148d95241f5b', symbol='ES', side=<OrderSide.SELL: 'SELL'>, qty=1, price=Decimal('5119.75'), timestamp=datetime.datetime(2026, 1, 1, 15, 59))

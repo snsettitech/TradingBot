@@ -1,0 +1,12 @@
+INFO: ORB Range Formed: 5000.5 - 5008.5
+INFO: Processing signal: TradeSignal(symbol='ES', direction=<SignalDirection.LONG: 'long'>, timestamp=datetime.datetime(2026, 1, 1, 9, 46), quantity=1, entry_type=<OrderType.MARKET: 'market'>, limit_price=None, stop_ticks=8, target_ticks=16, reason='ORB High Breakout 5010.25 >= 5008.5 + 0.50')
+INFO: Order placed: 43fd1479-224f-4bc0-8a47-cee4eec7212f ES OrderSide.BUY 1 OrderType.MARKET
+INFO: Fill received: Fill(id='6319ebf1-2934-425f-a600-786793d0c9ee', order_id='43fd1479-224f-4bc0-8a47-cee4eec7212f', symbol='ES', side=<OrderSide.BUY: 'BUY'>, qty=1, price=Decimal('5010.75'), timestamp=datetime.datetime(2026, 1, 1, 9, 47))
+INFO: Order placed: 81472a80-93bf-4d2f-92a0-9e76babeabc1 ES OrderSide.SELL 1 OrderType.STOP
+INFO: Placed Stop Loss: 81472a80-93bf-4d2f-92a0-9e76babeabc1 @ 5008.75
+INFO: Order placed: 10dfb714-21d5-4116-8c46-f38217535a8f ES OrderSide.SELL 1 OrderType.LIMIT
+INFO: Placed Target: 10dfb714-21d5-4116-8c46-f38217535a8f @ 5014.75
+INFO: Fill received: Fill(id='43a7a67e-a185-47a7-935e-49c2b248ad22', order_id='81472a80-93bf-4d2f-92a0-9e76babeabc1', symbol='ES', side=<OrderSide.SELL: 'SELL'>, qty=1, price=Decimal('5008.75'), timestamp=datetime.datetime(2026, 1, 1, 9, 52))
+INFO: Order cancelled: 10dfb714-21d5-4116-8c46-f38217535a8f
+INFO: Cancelled OCO leg: 10dfb714-21d5-4116-8c46-f38217535a8f
+INFO: Fill received: Fill(id='df4a5e36-35fe-4b28-91d1-2b7257b7c94e', order_id='43fd1479-224f-4bc0-8a47-cee4eec7212f', symbol='ES', side=<OrderSide.BUY: 'BUY'>, qty=1, price=Decimal('5010.25'), timestamp=datetime.datetime(2026, 1, 1, 9, 46))

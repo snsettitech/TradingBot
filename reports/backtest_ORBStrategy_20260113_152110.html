@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtest Report - ORBStrategy</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d4ff;
+            font-size: 2.5rem;
+        }
+        .header {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .header h2 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #888;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-3px);
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .metric-value.positive { color: #00ff88; }
+        .metric-value.negative { color: #ff4444; }
+        .metric-label {
+            color: #888;
+            margin-top: 5px;
+        }
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .chart-container h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+        .chart-wrapper {
+            height: 300px;
+        }
+        .regime-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .regime-table th, .regime-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .regime-table th {
+            color: #00d4ff;
+        }
+        .ai-insight {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1) 0%, rgba(0,255,136,0.1) 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        .ai-insight h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .trades-table th, .trades-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .trades-table th {
+            color: #00d4ff;
+            background: rgba(0,0,0,0.2);
+        }
+        .win { color: #00ff88; }
+        .loss { color: #ff4444; }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Backtest Report</h1>
+        
+        <div class="header">
+            <h2>ORBStrategy</h2>
+            <p>Period: 2024-01-02 to 2024-01-11 | Symbol: ES</p>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-value">16</div>
+                <div class="metric-label">Total Trades</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">18.8%</div>
+                <div class="metric-label">Win Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value negative">$-764.00</div>
+                <div class="metric-label">Net P&L</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">0.46</div>
+                <div class="metric-label">Profit Factor</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value negative">-$600.00</div>
+                <div class="metric-label">Max Drawdown</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">3 / 13</div>
+                <div class="metric-label">Winners / Losers</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>📈 Equity Curve</h3>
+            <div class="chart-wrapper">
+                <canvas id="equityChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>📊 P&L by Regime</h3>
+            <table class="regime-table">
+                <thead>
+                    <tr>
+                        <th>Regime</th>
+                        <th>Trades</th>
+                        <th>Win Rate</th>
+                        <th>P&L</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                <tr>
+                    <td>Choppy</td>
+                    <td>14</td>
+                    <td>21%</td>
+                    <td class="loss">$-500.00</td>
+                </tr>
+            
+
+                <tr>
+                    <td>Trending</td>
+                    <td>2</td>
+                    <td>0%</td>
+                    <td class="loss">$-200.00</td>
+                </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        
+        
+        
+        <div class="chart-container">
+            <h3>📝 Trade Log (Last 20)</h3>
+            <table class="trades-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Direction</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>P&L</th>
+                        <th>Regime</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                <tr>
+                    <td>01/02 09:37</td>
+                    <td>SHORT</td>
+                    <td>$4998.62</td>
+                    <td>$5000.62</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/02 09:56</td>
+                    <td>LONG</td>
+                    <td>$5000.83</td>
+                    <td>$4998.83</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/03 09:40</td>
+                    <td>LONG</td>
+                    <td>$5000.77</td>
+                    <td>$4998.77</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/03 12:11</td>
+                    <td>SHORT</td>
+                    <td>$4998.30</td>
+                    <td>$5000.30</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/04 09:47</td>
+                    <td>LONG</td>
+                    <td>$4994.96</td>
+                    <td>$4992.96</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/04 10:02</td>
+                    <td>SHORT</td>
+                    <td>$4991.82</td>
+                    <td>$4993.82</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/05 09:40</td>
+                    <td>LONG</td>
+                    <td>$4981.25</td>
+                    <td>$4985.25</td>
+                    <td class="win">$200.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/05 12:05</td>
+                    <td>SHORT</td>
+                    <td>$4977.49</td>
+                    <td>$4979.49</td>
+                    <td class="loss">$-100.00</td>
+                    <td>trending</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/08 10:06</td>
+                    <td>LONG</td>
+                    <td>$4983.70</td>
+                    <td>$4981.70</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/08 11:41</td>
+                    <td>SHORT</td>
+                    <td>$4979.79</td>
+                    <td>$4975.79</td>
+                    <td class="win">$200.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/09 09:43</td>
+                    <td>SHORT</td>
+                    <td>$4963.41</td>
+                    <td>$4959.41</td>
+                    <td class="win">$200.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/09 11:14</td>
+                    <td>LONG</td>
+                    <td>$4966.55</td>
+                    <td>$4964.55</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/10 09:46</td>
+                    <td>SHORT</td>
+                    <td>$4957.71</td>
+                    <td>$4959.71</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/10 15:44</td>
+                    <td>LONG</td>
+                    <td>$4960.54</td>
+                    <td>$4958.54</td>
+                    <td class="loss">$-100.00</td>
+                    <td>trending</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/11 09:55</td>
+                    <td>LONG</td>
+                    <td>$4961.12</td>
+                    <td>$4959.12</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/11 10:53</td>
+                    <td>SHORT</td>
+                    <td>$4957.77</td>
+                    <td>$4959.77</td>
+                    <td class="loss">$-100.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        
+        <footer>
+            Generated by TSXBot | 2026-01-13 15:21:10
+        </footer>
+    </div>
+    
+    <script>
+        const ctx = document.getElementById('equityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['01/02', '01/02', '01/03', '01/03', '01/04', '01/04', '01/05', '01/05', '01/08', '01/08', '01/09', '01/09', '01/10', '01/10', '01/11', '01/11'],
+                datasets: [{
+                    label: 'Equity Curve',
+                    data: [-100.0, -200.0, -300.0, -400.0, -500.0, -600.0, -400.0, -500.0, -600.0, -400.0, -200.0, -300.0, -400.0, -500.0, -600.0, -700.0],
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#888' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#888' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

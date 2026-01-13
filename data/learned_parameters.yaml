@@ -1,0 +1,31 @@
+orbstrategy:
+  choppy:
+    strategy: ORBStrategy
+    regime: choppy
+    opening_range_minutes: 5
+    profit_target_ticks: 16
+    stop_loss_ticks: 8
+    win_rate: 0.0
+    profit_factor: 0.0
+    avg_win_ticks: 0.0
+    avg_loss_ticks: -8.0
+    sample_size: 1
+    last_updated: '2026-01-13T17:01:48.076640'
+    backtest_source: backtest
+    confidence: 0.05
+    ai_recommendation: ''
+  trending:
+    strategy: ORBStrategy
+    regime: trending
+    opening_range_minutes: 5
+    profit_target_ticks: 16
+    stop_loss_ticks: 8
+    win_rate: 0.0
+    profit_factor: 0.0
+    avg_win_ticks: 0.0
+    avg_loss_ticks: -8.0
+    sample_size: 1
+    last_updated: '2026-01-13T17:01:48.080102'
+    backtest_source: backtest
+    confidence: 0.05
+    ai_recommendation: ''

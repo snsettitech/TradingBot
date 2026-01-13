@@ -1,0 +1,220 @@
+# TSXBot Configuration Example
+# Copy this file to config.yaml and customize for your trading setup
+
+# ============================================
+# Environment Settings
+# ============================================
+environment:
+  # Enable DRY_RUN to log trade intents without placing orders
+  dry_run: true
+  
+  # Broker mode: "projectx" for live/demo trading, "sim" for local simulation
+  broker_mode: "sim"
+  
+  # Logging level: DEBUG, INFO, WARNING, ERROR
+  log_level: "INFO"
+  
+  # Data directory for journal database
+  data_dir: "./data"
+
+# ============================================
+# ProjectX API Configuration
+# ============================================
+projectx:
+  # Credentials are loaded from environment variables for security
+  # Set these in your .env file, NOT here!
+  api_key: "${PROJECTX_API_KEY}"
+  username: "${PROJECTX_USERNAME}"
+  
+  # Trading environment: "DEMO" or "LIVE"
+  # ALWAYS test thoroughly in DEMO before going LIVE!
+  trading_environment: "${TRADING_ENVIRONMENT:DEMO}"
+  
+  # Optional: Specific account ID (leave empty to use first active account)
+  account_id: "${PROJECTX_ACCOUNT_ID:}"
+
+# ============================================
+# Symbol Configuration
+# ============================================
+symbols:
+  # Primary symbol for trading
+  primary: "ES"
+  
+  # Micro contract equivalent
+  micros: "MES"
+  
+  # Contract specifications (for position sizing)
+  es:
+    tick_size: 0.25
+    tick_value: 12.50
+    contract_id_prefix: "CON.F.US.ESH"  # Will append contract month
+  
+  mes:
+    tick_size: 0.25
+    tick_value: 1.25
+    contract_id_prefix: "CON.F.US.MESH"
+
+# ============================================
+# Session / RTH Configuration
+# ============================================
+session:
+  # Exchange timezone
+  timezone: "America/New_York"
+  
+  # Regular Trading Hours
+  rth_start: "09:30"
+  rth_end: "16:00"
+  
+  # Time to flatten all positions and cancel orders
+  # Set earlier than rth_end for safety margin
+  flatten_time: "15:55"
+  
+  # Days to trade (0=Monday, 4=Friday)
+  trading_days: [0, 1, 2, 3, 4]
+
+# ============================================
+# Risk Management
+# ============================================
+risk:
+  # Maximum daily loss before stopping trading (USD)
+  daily_loss_limit_usd: 500.0
+  
+  # Trailing drawdown guard - max loss from daily high water mark (USD)
+  max_loss_limit_usd: 1000.0
+  
+  # Maximum risk per individual trade (USD)
+  max_risk_per_trade_usd: 100.0
+  
+  # Maximum contracts per symbol
+  max_contracts_es: 2
+  max_contracts_mes: 10
+  
+  # Maximum number of trades per day
+  max_trades_per_day: 10
+  
+  # Kill switch - immediately stops all trading when true
+  # Can be toggled via CLI or API
+  kill_switch: false
+
+# ============================================
+# Execution Settings
+# ============================================
+execution:
+  # Order type for entries: "market" or "limit"
+  order_type: "market"
+  
+  # Assumed slippage for calculations (ticks)
+  slippage_ticks_assumption: 1
+  
+  # Bracket order defaults
+  bracket:
+    # Default stop loss distance (ticks)
+    stop_ticks_default: 8
+    
+    # Default take profit distance (ticks)
+    target_ticks_default: 16
+    
+    # Use trailing stop instead of fixed stop
+    use_trailing_stop: false
+    
+    # Trailing stop activation (ticks in profit before trailing starts)
+    trailing_activation_ticks: 8
+    
+    # Trailing stop distance (ticks behind price)
+    trailing_distance_ticks: 4
+
+# ============================================
+# Strategy Configuration
+# ============================================
+strategy:
+  # Active strategy: "orb", "sweep_reclaim", or "bos_pullback"
+  active: "orb"
+  
+  # Allow CLI override of strategy selection
+  allow_user_override: true
+  
+  # ----------------------------------------
+  # Opening Range Breakout (ORB) Strategy
+  # ----------------------------------------
+  orb:
+    # Duration of opening range in minutes from RTH open
+    opening_range_minutes: 5
+    
+    # Buffer above/below range for breakout confirmation (ticks)
+    breakout_buffer_ticks: 2
+    
+    # Stop loss distance from entry (ticks)
+    stop_ticks: 8
+    
+    # Take profit distance from entry (ticks)
+    target_ticks: 16
+    
+    # Maximum trades per day for this strategy
+    max_trades: 2
+    
+    # Minimum range size to consider valid (ticks)
+    min_range_ticks: 4
+    
+    # Maximum range size to consider valid (ticks)
+    max_range_ticks: 40
+    
+    # Trade direction: "long", "short", or "both"
+    direction: "both"
+  
+  # ----------------------------------------
+  # Liquidity Sweep Reclaim Strategy
+  # ----------------------------------------
+  sweep_reclaim:
+    # Lookback period for swing highs/lows (bars)
+    lookback_bars: 20
+    
+    # Minimum sweep distance beyond level (ticks)
+    min_sweep_ticks: 2
+    
+    # Maximum time for reclaim after sweep (bars)
+    reclaim_window_bars: 5
+    
+    # Stop loss distance (ticks)
+    stop_ticks: 6
+    
+    # Take profit distance (ticks)
+    target_ticks: 12
+    
+    # Maximum trades per day
+    max_trades: 3
+  
+  # ----------------------------------------
+  # Break of Structure Pullback Strategy
+  # ----------------------------------------
+  bos_pullback:
+    # Minimum swing size to identify structure (ticks)
+    min_swing_ticks: 10
+    
+    # Pullback retracement range (percentage of swing)
+    pullback_min_pct: 0.382
+    pullback_max_pct: 0.618
+    
+    # Entry trigger: "limit" at fib level or "market" on confirmation
+    entry_trigger: "limit"
+    
+    # Stop loss distance beyond swing (ticks)
+    stop_ticks: 4
+    
+    # Take profit: multiple of risk (R:R ratio)
+    target_rr_ratio: 2.0
+    
+    # Maximum trades per day
+    max_trades: 2
+
+# ============================================
+# Journal / Logging Configuration
+# ============================================
+journal:
+  # SQLite database file path
+  database_path: "${DATA_DIR:./data}/journal.db"
+  
+  # Log all decision ticks (can be verbose)
+  log_all_decisions: true
+  
+  # Retention period for old records (days, 0 = keep forever)
+  retention_days: 90

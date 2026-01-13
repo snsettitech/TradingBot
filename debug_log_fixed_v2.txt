@@ -1,0 +1,21 @@
+INFO: ORB Range Formed: 4954.5 - 4960.0
+INFO: Processing signal: TradeSignal(symbol='ES', direction=<SignalDirection.LONG: 'long'>, timestamp=datetime.datetime(2026, 1, 1, 10, 6), quantity=1, entry_type=<OrderType.MARKET: 'market'>, limit_price=None, stop_ticks=8, target_ticks=16, reason='ORB High Breakout 4961.5 >= 4960.0 + 0.50')
+INFO: Order placed: bf3513d6-d26e-46f4-bb64-6681ad2b5eaf ES OrderSide.BUY 1 OrderType.MARKET
+INFO: Fill received: Fill(id='6d23453e-24fe-4167-beb9-dc1ec94b3005', order_id='bf3513d6-d26e-46f4-bb64-6681ad2b5eaf', symbol='ES', side=<OrderSide.BUY: 'BUY'>, qty=1, price=Decimal('4961.75'), timestamp=datetime.datetime(2026, 1, 1, 10, 7))
+INFO: Order placed: 41093d74-38f9-4ba9-bbe0-3fae5e8f1e70 ES OrderSide.SELL 1 OrderType.STOP
+INFO: Placed Stop Loss: 41093d74-38f9-4ba9-bbe0-3fae5e8f1e70 @ 4959.75
+INFO: Order placed: d486a98d-7fef-458e-8529-bd16e62629ed ES OrderSide.SELL 1 OrderType.LIMIT
+INFO: Placed Target: d486a98d-7fef-458e-8529-bd16e62629ed @ 4965.75
+INFO: Fill received: Fill(id='3a8aad7a-bfef-4fdc-9c99-97a9f09156d5', order_id='41093d74-38f9-4ba9-bbe0-3fae5e8f1e70', symbol='ES', side=<OrderSide.SELL: 'SELL'>, qty=1, price=Decimal('4959.75'), timestamp=datetime.datetime(2026, 1, 1, 10, 27))
+INFO: Order cancelled: d486a98d-7fef-458e-8529-bd16e62629ed
+INFO: Cancelled OCO leg: d486a98d-7fef-458e-8529-bd16e62629ed
+INFO: Processing signal: TradeSignal(symbol='ES', direction=<SignalDirection.SHORT: 'short'>, timestamp=datetime.datetime(2026, 1, 1, 10, 31), quantity=1, entry_type=<OrderType.MARKET: 'market'>, limit_price=None, stop_ticks=8, target_ticks=16, reason='ORB Low Breakout 4954.0 <= 4954.5 - 0.50')
+INFO: Order placed: 80a56de2-90b2-4fd2-bb88-3c5e053acd77 ES OrderSide.SELL 1 OrderType.MARKET
+INFO: Fill received: Fill(id='0970852a-1493-4060-97c8-dc2bbfaa5dd5', order_id='80a56de2-90b2-4fd2-bb88-3c5e053acd77', symbol='ES', side=<OrderSide.SELL: 'SELL'>, qty=1, price=Decimal('4955.75'), timestamp=datetime.datetime(2026, 1, 1, 10, 32))
+INFO: Order placed: 7d703259-0ecd-41b5-87ca-e6d92fac6080 ES OrderSide.BUY 1 OrderType.STOP
+INFO: Placed Stop Loss: 7d703259-0ecd-41b5-87ca-e6d92fac6080 @ 4957.75
+INFO: Order placed: f85aeddd-ef0d-4adf-945c-6c842ede9798 ES OrderSide.BUY 1 OrderType.LIMIT
+INFO: Placed Target: f85aeddd-ef0d-4adf-945c-6c842ede9798 @ 4951.75
+INFO: Fill received: Fill(id='15a3f69e-5ebd-4482-8b5e-bde2dae6c157', order_id='7d703259-0ecd-41b5-87ca-e6d92fac6080', symbol='ES', side=<OrderSide.BUY: 'BUY'>, qty=1, price=Decimal('4957.75'), timestamp=datetime.datetime(2026, 1, 1, 10, 45))
+INFO: Order cancelled: f85aeddd-ef0d-4adf-945c-6c842ede9798
+INFO: Cancelled OCO leg: f85aeddd-ef0d-4adf-945c-6c842ede9798

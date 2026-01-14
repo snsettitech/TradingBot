@@ -4,11 +4,10 @@
 services:
   - type: worker
     name: tsxbot-daily-runner
-    runtime: python
+    runtime: docker
     region: ohio  # US East (closest to market data)
     plan: starter  # $7/month, always on
-    buildCommand: pip install -r requirements.txt && pip install -e .
-    startCommand: python -m tsxbot.scheduler.daily_runner
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: PROJECTX_API_KEY
         sync: false

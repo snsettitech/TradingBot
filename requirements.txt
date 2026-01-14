@@ -1,15 +1,23 @@
-# TSXBot requirements for Render deployment
-# Render will use this to install dependencies
+# TSXBot requirements for deployment
+# Full dependencies including tsxapipy needs
 
 # Core dependencies
 pydantic>=2.0
+pydantic-settings>=2.0
 pyyaml>=6.0
 python-dotenv>=1.0
 httpx>=0.25
 aiohttp>=3.9
+click>=8.0
+pytz>=2024.1
+rich>=13.0
 
-# OpenAI (for AI features)
+# AI
 openai>=1.0
 
-# Note: supabase removed - it requires pyarrow which needs native compilation
-# Supabase functionality is optional and disabled when not available
+# Data (required by tsxapipy)
+pandas>=2.0
+pyarrow>=14.0
+
+# Supabase (optional - cloud persistence)
+supabase>=2.0

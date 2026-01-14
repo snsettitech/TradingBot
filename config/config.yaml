@@ -70,9 +70,10 @@ session:
   rth_start: "09:30"
   rth_end: "16:00"
   
-  # Time to flatten all positions (End of Day)ncel orders
-  # Set earlier than rth_end for safety margin
-  flatten_time: "15:55"
+  # Time to flatten all positions (End of Day)
+  # TopstepX requires close by 3:10 PM CT (4:10 PM ET)
+  # Setting to 3:10 PM ET for safety margin
+  flatten_time: "15:10"
   
   # Days to trade (0=Monday, 4=Friday)
   trading_days: [0, 1, 2, 3, 4]

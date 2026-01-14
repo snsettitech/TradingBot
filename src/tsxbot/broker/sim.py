@@ -9,7 +9,7 @@ from decimal import Decimal
 
 from tsxbot.broker.base import Broker
 from tsxbot.broker.models import Fill, Order, OrderRequest, Position, generate_id
-from tsxbot.config_loader import SymbolsConfig
+from tsxbot.config_loader import ExecutionConfig, SymbolsConfig
 from tsxbot.constants import OrderSide, OrderStatus, OrderType
 from tsxbot.data.market_data import Tick
 
@@ -23,10 +23,14 @@ class SimBroker(Broker):
     """
 
     def __init__(
-        self, symbols_config: SymbolsConfig, initial_balance: Decimal = Decimal("100000.00")
+        self,
+        symbols_config: SymbolsConfig,
+        initial_balance: Decimal = Decimal("100000.00"),
+        execution_config: ExecutionConfig | None = None,
     ):
         super().__init__()
         self.symbols_config = symbols_config
+        self.execution_config = execution_config or ExecutionConfig()
         self._balance = initial_balance
         self._orders: dict[str, Order] = {}
         self._positions: dict[str, Position] = defaultdict(lambda: Position(symbol=""))
@@ -103,7 +107,12 @@ class SimBroker(Broker):
         fill_price = None
 
         if req.type == OrderType.MARKET:
-            fill_price = tick.price
+            # Apply slippage (unfavorable direction)
+            slippage = Decimal(str(self.execution_config.slippage_ticks)) * Decimal("0.25")
+            if req.side == OrderSide.BUY:
+                fill_price = tick.price + slippage  # Pay more
+            else:
+                fill_price = tick.price - slippage  # Receive less
         elif req.type == OrderType.LIMIT:
             if req.side == OrderSide.BUY and tick.price <= req.limit_price:
                 fill_price = (
@@ -146,12 +155,26 @@ class SimBroker(Broker):
             order.avg_fill_price = fill_price
             order.updated_at = tick.timestamp
 
+            # Deduct commission
+            commission = self._get_commission(req.symbol, req.qty)
+            self._balance -= commission
+            logger.debug(f"Commission deducted: ${commission} for {req.qty} {req.symbol}")
+
             # Update Position & Balance
             await self._update_position(fill)
 
             # Callback
             for cb in self._fill_callbacks:
                 await cb(fill)
+
+    def _get_commission(self, symbol: str, qty: int) -> Decimal:
+        """Calculate commission for a trade (one side, half round-turn)."""
+        if "MES" in symbol.upper():
+            # MES: $0.74 per round-turn, so $0.37 per side
+            return (self.execution_config.commissions.mes_round_turn / 2) * qty
+        else:
+            # ES: $2.80 per round-turn, so $1.40 per side
+            return (self.execution_config.commissions.es_round_turn / 2) * qty
 
     async def _update_position(self, fill: Fill) -> None:
         symbol = fill.symbol

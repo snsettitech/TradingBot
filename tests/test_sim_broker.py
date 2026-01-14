@@ -7,7 +7,7 @@ import pytest
 
 from tsxbot.broker.models import OrderRequest
 from tsxbot.broker.sim import SimBroker
-from tsxbot.config_loader import SymbolsConfig, SymbolSpecConfig
+from tsxbot.config_loader import ExecutionConfig, SymbolsConfig, SymbolSpecConfig, CommissionConfig
 from tsxbot.constants import OrderSide, OrderStatus, OrderType
 from tsxbot.data.market_data import Tick
 
@@ -24,7 +24,15 @@ def symbols_config():
 
 @pytest.fixture
 def broker(symbols_config):
-    return SimBroker(symbols_config, initial_balance=Decimal("100000.00"))
+    # Zero slippage and zero commission for predictable test results
+    exec_config = ExecutionConfig(
+        slippage_ticks=0,
+        commissions=CommissionConfig(
+            es_round_turn=Decimal("0.00"),
+            mes_round_turn=Decimal("0.00")
+        )
+    )
+    return SimBroker(symbols_config, initial_balance=Decimal("100000.00"), execution_config=exec_config)
 
 
 @pytest.mark.asyncio

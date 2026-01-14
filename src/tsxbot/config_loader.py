@@ -219,11 +219,26 @@ class BracketConfig(BaseModel):
         return v
 
 
+class CommissionConfig(BaseModel):
+    """Commission configuration for TopstepX."""
+
+    es_round_turn: Decimal = Decimal("2.80")  # ES commission per round-turn
+    mes_round_turn: Decimal = Decimal("0.74")  # MES commission per round-turn
+
+    @field_validator("es_round_turn", "mes_round_turn", mode="before")
+    @classmethod
+    def convert_to_decimal(cls, v: Any) -> Decimal:
+        if isinstance(v, Decimal):
+            return v
+        return Decimal(str(v))
+
+
 class ExecutionConfig(BaseModel):
     """Execution settings configuration."""
 
     order_type: OrderType = OrderType.MARKET
-    slippage_ticks_assumption: int = 1
+    slippage_ticks: int = 1  # Assumed slippage in ticks
+    commissions: CommissionConfig = Field(default_factory=CommissionConfig)
     bracket: BracketConfig = Field(default_factory=BracketConfig)
 
 

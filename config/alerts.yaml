@@ -1,0 +1,37 @@
+# Alert Configuration
+
+# Email Settings
+smtp:
+  host: smtp.gmail.com
+  port: 587
+  # Credentials loaded from env: SMTP_USER, SMTP_PASSWORD
+  
+# Recipients (can also be set via ALERT_RECIPIENTS env var)
+recipients:
+  - your-email@example.com
+
+# Alert Thresholds
+thresholds:
+  # Large movement detection
+  large_move_pct: 1.0  # 1% move triggers alert
+  large_move_window_minutes: 5
+  
+  # Cooldown between alerts (prevent spam)
+  min_alert_interval_seconds: 60
+
+# Session Alerts
+session:
+  send_start: true
+  send_end: true
+  send_summary: true
+
+# Signal Alerts
+signals:
+  send_trade_signals: true
+  send_skip_notifications: false
+  include_backtest_evidence: true
+
+# Learning Alerts
+learning:
+  send_parameter_updates: true
+  send_daily_report: true

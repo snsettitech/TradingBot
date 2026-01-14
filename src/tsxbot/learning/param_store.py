@@ -255,10 +255,7 @@ class ParameterStore:
 
         try:
             with open(self.params_file) as f:
-                if YAML_AVAILABLE:
-                    data = yaml.safe_load(f)
-                else:
-                    data = json.load(f)
+                data = yaml.safe_load(f) if YAML_AVAILABLE else json.load(f)
 
             if not data:
                 return

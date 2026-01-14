@@ -136,10 +136,7 @@ def backtest(config, strategy, data, days, projectx, ai, report):
     engine.load_data(bars)
 
     click.echo("\nRunning backtest...")
-    if ai:
-        result = asyncio.run(engine.run_with_ai())
-    else:
-        result = engine.run()
+    result = asyncio.run(engine.run_with_ai()) if ai else engine.run()
 
     # Print results
     click.echo("\n" + "=" * 60)

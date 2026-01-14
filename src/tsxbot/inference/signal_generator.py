@@ -9,6 +9,7 @@ Produces a complete signal packet with:
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from dataclasses import dataclass, field
@@ -27,14 +28,14 @@ logger = logging.getLogger(__name__)
 @dataclass
 class BacktestEvidence:
     """Summary of backtest results for similar conditions."""
-    
+
     sample_size: int = 0
     win_rate: float = 0.0
     profit_factor: float = 0.0
     expectancy_r: float = 0.0
     walk_forward_valid: bool = False
     period: str = ""  # e.g., "Last 6 months"
-    
+
     def to_dict(self) -> dict:
         return {
             "sample_size": self.sample_size,
@@ -50,24 +51,24 @@ class BacktestEvidence:
 class SignalPacket:
     """
     Complete signal packet for delivery.
-    
+
     Contains everything needed to understand and act on a signal.
     """
-    
+
     # Metadata
     timestamp: datetime
     session_date: str
-    
+
     # Regime
     regime: str
     regime_confidence: float
     regime_rationale: str
-    
+
     # Strategy
     playbook: str
     playbook_score: float
     playbook_rationale: str
-    
+
     # Execution Parameters
     direction: str
     entry_price: Decimal
@@ -75,17 +76,17 @@ class SignalPacket:
     profit_target: Decimal
     time_stop: datetime | None
     flatten_time: datetime | None
-    
+
     # Evidence
     backtest_evidence: BacktestEvidence | None = None
-    
+
     # Skip Conditions
     skip_reasons: list[str] = field(default_factory=list)
     should_trade: bool = True
-    
+
     # Raw signal (for reference)
     raw_signal: dict | None = None
-    
+
     def to_dict(self) -> dict:
         return {
             "timestamp": self.timestamp.isoformat(),
@@ -112,10 +113,10 @@ class SignalPacket:
             "skip_reasons": self.skip_reasons,
             "should_trade": self.should_trade,
         }
-    
+
     def to_json(self, indent: int = 2) -> str:
         return json.dumps(self.to_dict(), indent=indent, default=str)
-    
+
     def to_markdown(self) -> str:
         """Generate markdown summary for notifications."""
         lines = [
@@ -133,56 +134,62 @@ class SignalPacket:
             f"- **Score**: {self.playbook_score:.2f}",
             "",
         ]
-        
+
         if self.should_trade:
-            lines.extend([
-                "## 🎯 Trade Setup",
-                f"- **Direction**: {self.direction.upper()}",
-                f"- **Entry**: {self.entry_price}",
-                f"- **Stop Loss**: {self.stop_loss}",
-                f"- **Target**: {self.profit_target}",
-            ])
+            lines.extend(
+                [
+                    "## 🎯 Trade Setup",
+                    f"- **Direction**: {self.direction.upper()}",
+                    f"- **Entry**: {self.entry_price}",
+                    f"- **Stop Loss**: {self.stop_loss}",
+                    f"- **Target**: {self.profit_target}",
+                ]
+            )
             if self.time_stop:
                 lines.append(f"- **Time Stop**: {self.time_stop.strftime('%H:%M ET')}")
             if self.flatten_time:
                 lines.append(f"- **Flatten**: {self.flatten_time.strftime('%H:%M ET')}")
         else:
-            lines.extend([
-                "## ⚠️ SKIP SIGNAL",
-                "",
-                "Reasons:",
-            ])
+            lines.extend(
+                [
+                    "## ⚠️ SKIP SIGNAL",
+                    "",
+                    "Reasons:",
+                ]
+            )
             for reason in self.skip_reasons:
                 lines.append(f"- {reason}")
-        
+
         if self.backtest_evidence:
-            lines.extend([
-                "",
-                "## 📈 Backtest Evidence",
-                f"- Period: {self.backtest_evidence.period}",
-                f"- Trades: {self.backtest_evidence.sample_size}",
-                f"- Win Rate: {self.backtest_evidence.win_rate:.0%}",
-                f"- Profit Factor: {self.backtest_evidence.profit_factor:.2f}",
-                f"- WFV Valid: {'✅' if self.backtest_evidence.walk_forward_valid else '❌'}",
-            ])
-        
+            lines.extend(
+                [
+                    "",
+                    "## 📈 Backtest Evidence",
+                    f"- Period: {self.backtest_evidence.period}",
+                    f"- Trades: {self.backtest_evidence.sample_size}",
+                    f"- Win Rate: {self.backtest_evidence.win_rate:.0%}",
+                    f"- Profit Factor: {self.backtest_evidence.profit_factor:.2f}",
+                    f"- WFV Valid: {'✅' if self.backtest_evidence.walk_forward_valid else '❌'}",
+                ]
+            )
+
         return "\n".join(lines)
 
 
 class SignalGenerator:
     """
     Generates signal packets from trade signals.
-    
+
     Combines:
     - Trade signal (from playbook)
     - Regime analysis
     - Selection result
     - Backtest evidence
     """
-    
+
     def __init__(self, flatten_time_str: str = "15:55"):
         self.flatten_time_str = flatten_time_str
-    
+
     def generate(
         self,
         signal: TradeSignal,
@@ -192,13 +199,13 @@ class SignalGenerator:
     ) -> SignalPacket:
         """
         Generate a complete signal packet.
-        
+
         Args:
             signal: Trade signal from playbook
             regime_analysis: Current regime classification
             selection_result: Strategy selection result
             backtest_evidence: Optional backtest summary
-        
+
         Returns:
             SignalPacket ready for delivery
         """
@@ -210,15 +217,13 @@ class SignalGenerator:
                 flatten_time = signal.timestamp.replace(hour=h, minute=m, second=0)
             except Exception:
                 pass
-        
+
         # Extract time stop from metadata
         time_stop = None
         if signal.metadata and "time_stop" in signal.metadata:
-            try:
+            with contextlib.suppress(Exception):
                 time_stop = datetime.fromisoformat(signal.metadata["time_stop"])
-            except Exception:
-                pass
-        
+
         packet = SignalPacket(
             timestamp=signal.timestamp,
             session_date=signal.timestamp.strftime("%Y-%m-%d"),
@@ -239,11 +244,11 @@ class SignalGenerator:
             should_trade=selection_result.should_trade,
             raw_signal=signal.metadata,
         )
-        
+
         logger.info(f"Generated signal packet: {packet.playbook} {packet.direction}")
-        
+
         return packet
-    
+
     def generate_skip_packet(
         self,
         regime_analysis: RegimeAnalysis,

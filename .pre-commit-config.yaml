@@ -1,0 +1,36 @@
+# Pre-commit configuration for TSXBot
+# Run: pip install pre-commit && pre-commit install
+
+repos:
+  # Ruff - Fast linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  # Type checking (optional but recommended)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [pydantic>=2.0]
+        args: [--ignore-missing-imports]
+        pass_filenames: false
+        entry: mypy src/tsxbot
+
+  # General checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+
+# CI configuration
+ci:
+  autofix_prs: true
+  autoupdate_schedule: weekly

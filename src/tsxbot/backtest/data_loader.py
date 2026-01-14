@@ -164,7 +164,7 @@ class HistoricalDataLoader:
         current_price = Decimal("5000")
         current_time = start.replace(hour=9, minute=30, second=0, microsecond=0)
 
-        for day in range(days):
+        for _day in range(days):
             # Skip weekends
             if current_time.weekday() >= 5:
                 current_time += timedelta(days=1)
@@ -173,7 +173,7 @@ class HistoricalDataLoader:
             # Daily bias
             daily_bias = Decimal(str(random.uniform(-0.5, 0.5)))
 
-            for minute in range(bars_per_day):
+            for _minute in range(bars_per_day):
                 # Price movement
                 noise = Decimal(str(random.uniform(-1, 1)))
                 trend = daily_bias * Decimal("0.01")

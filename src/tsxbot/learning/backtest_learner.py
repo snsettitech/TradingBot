@@ -143,31 +143,31 @@ class BacktestLearner:
         """
         try:
             strat_name = result.strategy.lower()
-            
+
             # Map strategy class name to config section
             if "orb" in strat_name:
                 cfg = self.config.strategy.orb
                 return {
                     "opening_range_minutes": getattr(cfg, "opening_range_minutes", 30),
                     "profit_target_ticks": getattr(cfg, "target_ticks", 16),
-                    "stop_loss_ticks": getattr(cfg, "stop_ticks", 8)
+                    "stop_loss_ticks": getattr(cfg, "stop_ticks", 8),
                 }
             elif "vwap" in strat_name:
                 cfg = self.config.strategy.vwap_bounce
                 return {
-                    "opening_range_minutes": getattr(cfg, "skip_first_minutes", 0), # Proxy
+                    "opening_range_minutes": getattr(cfg, "skip_first_minutes", 0),  # Proxy
                     "profit_target_ticks": getattr(cfg, "target_ticks", 12),
-                    "stop_loss_ticks": getattr(cfg, "stop_ticks", 6)
+                    "stop_loss_ticks": getattr(cfg, "stop_ticks", 6),
                 }
             elif "mean" in strat_name:
                 cfg = self.config.strategy.mean_reversion
                 return {
-                    "opening_range_minutes": getattr(cfg, "skip_first_minutes", 0), # Proxy
+                    "opening_range_minutes": getattr(cfg, "skip_first_minutes", 0),  # Proxy
                     "profit_target_ticks": getattr(cfg, "target_ticks", 8),
-                    "stop_loss_ticks": getattr(cfg, "stop_ticks", 8)
+                    "stop_loss_ticks": getattr(cfg, "stop_ticks", 8),
                 }
-                
+
         except Exception as e:
             logger.warning(f"Failed to extract config params: {e}")
-            
+
         return {}

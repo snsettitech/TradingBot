@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class FakeoutReversalConfig:
     """Configuration for Fakeout Reversal playbook."""
-    
+
     stop_ticks: int = 6
     target_ticks: int = 12
     time_stop_minutes: int = 90
@@ -47,12 +47,12 @@ class FakeoutReversalConfig:
 class FakeoutReversalPlaybook(BaseStrategy):
     """
     Fakeout Reversal Strategy.
-    
+
     Fades failed breakouts when price reclaims the level.
     """
-    
+
     name = "FakeoutReversal"
-    
+
     def __init__(
         self,
         config: AppConfig,
@@ -62,11 +62,11 @@ class FakeoutReversalPlaybook(BaseStrategy):
         super().__init__(config, session_manager)
         self.pb_config = playbook_config or FakeoutReversalConfig()
         self.tick_size = Decimal("0.25")
-    
+
     def on_tick(self, tick: Tick) -> list[TradeSignal]:
         """Process tick - not used for this bar-based strategy."""
         return []
-    
+
     def on_interaction(
         self,
         interaction: LevelInteraction,
@@ -79,11 +79,11 @@ class FakeoutReversalPlaybook(BaseStrategy):
         # Only act on Fakeout-Reclaim events
         if interaction.interaction_type != InteractionType.FAKEOUT_RECLAIM:
             return None
-        
+
         # Only trade valid levels
         if interaction.level_name not in self.pb_config.valid_levels:
             return None
-        
+
         # Direction is OPPOSITE of the failed break
         # If price tried to break above and failed, we go SHORT
         # If price tried to break below and failed, we go LONG
@@ -97,9 +97,9 @@ class FakeoutReversalPlaybook(BaseStrategy):
             direction = SignalDirection.LONG
             stop_price = current_price - (self.pb_config.stop_ticks * self.tick_size)
             target_price = current_price + (self.pb_config.target_ticks * self.tick_size)
-        
+
         time_stop = timestamp + timedelta(minutes=self.pb_config.time_stop_minutes)
-        
+
         signal = TradeSignal(
             timestamp=timestamp,
             symbol=self.config.symbols.primary,
@@ -116,21 +116,22 @@ class FakeoutReversalPlaybook(BaseStrategy):
                 "time_stop": time_stop.isoformat(),
             },
         )
-        
-        logger.info(f"Fakeout signal: {direction.value} at {current_price}, level={interaction.level_name}")
-        
+
+        logger.info(
+            f"Fakeout signal: {direction.value} at {current_price}, level={interaction.level_name}"
+        )
+
         return signal
-    
+
     def get_skip_conditions(self, levels: SessionLevels | None = None) -> list[str]:
         """Return conditions under which this playbook should be skipped."""
         conditions = []
-        
-        if levels:
-            if not levels.or_formed:
-                conditions.append("Opening Range not yet formed")
-        
+
+        if levels and not levels.or_formed:
+            conditions.append("Opening Range not yet formed")
+
         return conditions
-    
+
     def reset(self) -> None:
         """Reset strategy state."""
         pass

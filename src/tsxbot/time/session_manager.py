@@ -99,11 +99,7 @@ class SessionManager:
         t = dt.time()
 
         # Logic assumes flatten time is usually near end of RTH
-        if self.flatten_time <= self.rth_end_time:
-            if t >= self.flatten_time:
-                return False
-
-        return True
+        return not (self.flatten_time <= self.rth_end_time and t >= self.flatten_time)
 
     def should_flatten(self, dt: datetime | None = None) -> bool:
         """
@@ -125,17 +121,13 @@ class SessionManager:
         t = dt.time()
 
         # Case 1: Within RTH but past flatten time
-        if self.rth_start_time <= t < self.rth_end_time:
-            if t >= self.flatten_time:
-                return True
+        if self.rth_start_time <= t < self.rth_end_time and t >= self.flatten_time:
+            return True
 
         # Case 2: Past RTH end
         # Note: This depends on how often we check. If we check continuously,
         # the first condition catches it.
-        if t >= self.rth_end_time:
-            return True
-
-        return False
+        return t >= self.rth_end_time
 
     def time_until_rth_open(self) -> timedelta:
         """Get duration until next RTH open."""

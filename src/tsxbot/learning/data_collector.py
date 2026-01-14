@@ -28,13 +28,13 @@ logger = logging.getLogger(__name__)
 class DataCollector:
     """
     Collects and processes daily market data for learning.
-    
+
     Run nightly after RTH close to:
     1. Store day's levels
     2. Archive tick data (optional)
     3. Trigger learning pipeline
     """
-    
+
     def __init__(
         self,
         config: AppConfig,
@@ -43,30 +43,30 @@ class DataCollector:
         self.config = config
         self.supabase = supabase or SupabaseStore()
         self.level_store = LevelStore()
-    
+
     async def collect_daily(
         self,
         target_date: date | None = None,
     ) -> dict:
         """
         Collect and store data for a specific date.
-        
+
         Args:
             target_date: Date to collect (default: today)
-        
+
         Returns:
             Summary of collection results
         """
         target_date = target_date or date.today()
         logger.info(f"Collecting data for {target_date}")
-        
+
         results = {
             "date": target_date.isoformat(),
             "levels_stored": False,
             "ticks_stored": 0,
             "errors": [],
         }
-        
+
         # 1. Get levels from level store (if available)
         levels = self.level_store.get_current_levels()
         if levels and self.supabase.is_available:
@@ -77,13 +77,13 @@ class DataCollector:
             except Exception as e:
                 results["errors"].append(f"Level storage failed: {e}")
                 logger.error(f"Failed to store levels: {e}")
-        
+
         # 2. Archive tick data (placeholder - would need broker integration)
         # This would typically come from the broker's historical API
         logger.info("Tick archival not implemented - requires broker API")
-        
+
         return results
-    
+
     async def run_learning_pipeline(
         self,
         strategy_classes: list,
@@ -91,53 +91,53 @@ class DataCollector:
     ) -> dict:
         """
         Run the full learning pipeline.
-        
+
         Steps:
         1. Load historical data
         2. Run WFV for each strategy
         3. Update parameters
-        
+
         Args:
             strategy_classes: List of strategy classes to evaluate
             lookback_days: Days of data to use (default: 180 = 6 months)
-        
+
         Returns:
             Pipeline results summary
         """
         from tsxbot.learning.param_store import ParameterStore
         from tsxbot.learning.updater import ParameterUpdater
         from tsxbot.learning.walk_forward import WalkForwardValidator
-        
+
         logger.info(f"Starting learning pipeline with {lookback_days} days lookback")
-        
+
         results = {
             "strategies_evaluated": 0,
             "parameters_updated": 0,
             "wfv_results": [],
         }
-        
+
         param_store = ParameterStore()
         updater = ParameterUpdater(param_store)
         wfv = WalkForwardValidator(self.config)
-        
+
         # Load historical bars (placeholder)
         bars = await self._load_historical_bars(lookback_days)
         if not bars:
             logger.warning("No historical data available for learning")
             return results
-        
+
         wfv.load_data(bars)
-        
+
         for strategy_class in strategy_classes:
             try:
                 wfv_result = wfv.run(strategy_class)
                 results["wfv_results"].append(wfv_result.to_dict())
                 results["strategies_evaluated"] += 1
-                
+
                 if wfv_result.is_valid and wfv_result.best_params:
                     # Convert to StrategyParams and update
                     from tsxbot.learning.param_store import StrategyParams
-                    
+
                     for regime in ["trend_up", "trend_down", "range"]:
                         params = StrategyParams(
                             strategy=wfv_result.strategy,
@@ -151,21 +151,21 @@ class DataCollector:
                             confidence=wfv_result.stability_score,
                             backtest_source="learning_pipeline",
                         )
-                        
+
                         update_result = updater.try_update(params, source="wfv_pipeline")
                         if update_result.allowed:
                             results["parameters_updated"] += 1
-                
+
             except Exception as e:
                 logger.error(f"Failed to process {strategy_class.__name__}: {e}")
-        
+
         logger.info(
             f"Learning pipeline complete: {results['strategies_evaluated']} strategies, "
             f"{results['parameters_updated']} updates"
         )
-        
+
         return results
-    
+
     async def _load_historical_bars(self, days: int) -> list[Bar]:
         """Load historical bars from storage or API."""
         # Placeholder - would load from Supabase or file storage
@@ -176,7 +176,7 @@ class DataCollector:
 async def run_nightly_collection():
     """Entry point for nightly collection job."""
     logging.basicConfig(level=logging.INFO)
-    
+
     from tsxbot.config_loader import load_config
     from tsxbot.strategies.playbooks import (
         BreakoutAcceptancePlaybook,
@@ -184,20 +184,22 @@ async def run_nightly_collection():
         LevelBouncePlaybook,
         ORBPullbackPlaybook,
     )
-    
+
     config = load_config()
     collector = DataCollector(config)
-    
+
     # Collect day's data
     await collector.collect_daily()
-    
+
     # Run learning pipeline
-    await collector.run_learning_pipeline([
-        BreakoutAcceptancePlaybook,
-        FakeoutReversalPlaybook,
-        LevelBouncePlaybook,
-        ORBPullbackPlaybook,
-    ])
+    await collector.run_learning_pipeline(
+        [
+            BreakoutAcceptancePlaybook,
+            FakeoutReversalPlaybook,
+            LevelBouncePlaybook,
+            ORBPullbackPlaybook,
+        ]
+    )
 
 
 if __name__ == "__main__":

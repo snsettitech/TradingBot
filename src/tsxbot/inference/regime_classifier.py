@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class MarketRegime(Enum):
     """Market regime classification."""
+
     TREND_UP = "trend_up"
     TREND_DOWN = "trend_down"
     RANGE = "range"
@@ -33,12 +34,12 @@ class MarketRegime(Enum):
 @dataclass
 class RegimeAnalysis:
     """Result of regime classification."""
-    
+
     regime: MarketRegime
     confidence: float  # 0.0 to 1.0
     rationale: str
     supporting_factors: list[str]
-    
+
     def to_dict(self) -> dict:
         return {
             "regime": self.regime.value,
@@ -51,14 +52,14 @@ class RegimeAnalysis:
 class RegimeClassifier:
     """
     Classifies current market regime based on features.
-    
+
     Uses a weighted scoring system combining:
     - Trend direction (EMA relationship)
     - Position relative to OR and VWAP
     - Volatility state
     - Time of day
     """
-    
+
     def __init__(self):
         # Weights for scoring
         self.weights = {
@@ -67,14 +68,14 @@ class RegimeClassifier:
             "volatility": 0.20,
             "time": 0.15,
         }
-    
+
     def classify(self, snapshot: FeatureSnapshot) -> RegimeAnalysis:
         """
         Classify current market regime.
-        
+
         Args:
             snapshot: Current FeatureSnapshot
-        
+
         Returns:
             RegimeAnalysis with regime and confidence
         """
@@ -86,7 +87,7 @@ class RegimeClassifier:
             MarketRegime.BREAKOUT: 0.0,
             MarketRegime.HIGH_VOLATILITY: 0.0,
         }
-        
+
         # 1. Trend scoring
         if snapshot.trend_direction == "up":
             scores[MarketRegime.TREND_UP] += self.weights["trend"]
@@ -97,7 +98,7 @@ class RegimeClassifier:
         else:
             scores[MarketRegime.RANGE] += self.weights["trend"]
             factors.append("EMA flat, sideways action")
-        
+
         # 2. Position relative to OR
         if snapshot.position_in_or == "above":
             scores[MarketRegime.TREND_UP] += self.weights["position"] * 0.5
@@ -110,7 +111,7 @@ class RegimeClassifier:
         else:
             scores[MarketRegime.RANGE] += self.weights["position"]
             factors.append("Price within Opening Range")
-        
+
         # 3. VWAP relationship
         if snapshot.side_of_vwap == "above" and snapshot.distance_to_vwap_ticks > 10:
             scores[MarketRegime.TREND_UP] += 0.1
@@ -118,16 +119,16 @@ class RegimeClassifier:
         elif snapshot.side_of_vwap == "below" and snapshot.distance_to_vwap_ticks < -10:
             scores[MarketRegime.TREND_DOWN] += 0.1
             factors.append("Extended below VWAP")
-        
+
         # 4. Volatility
-        vol_state = snapshot.volatility.value if hasattr(snapshot, 'volatility') else "normal"
+        vol_state = snapshot.volatility.value if hasattr(snapshot, "volatility") else "normal"
         if vol_state == "high" or vol_state == "extreme":
             scores[MarketRegime.HIGH_VOLATILITY] += self.weights["volatility"]
             factors.append(f"Volatility is {vol_state}")
         elif vol_state == "low":
             scores[MarketRegime.RANGE] += self.weights["volatility"] * 0.5
             factors.append("Low volatility environment")
-        
+
         # 5. Time of day influence
         if snapshot.time_of_day == "open":
             scores[MarketRegime.BREAKOUT] += self.weights["time"]
@@ -135,25 +136,25 @@ class RegimeClassifier:
         elif snapshot.time_of_day == "close":
             scores[MarketRegime.RANGE] += self.weights["time"] * 0.5
             factors.append("End of day (reversion prone)")
-        
+
         # Find winning regime
         best_regime = max(scores, key=scores.get)
         best_score = scores[best_regime]
-        
+
         # Calculate confidence (normalize by max possible score)
         max_possible = sum(self.weights.values()) + 0.2  # Extra from position details
         confidence = min(1.0, best_score / max_possible * 1.5)  # Scale up
-        
+
         # Generate rationale
         rationale = self._generate_rationale(best_regime, factors)
-        
+
         return RegimeAnalysis(
             regime=best_regime,
             confidence=confidence,
             rationale=rationale,
             supporting_factors=factors,
         )
-    
+
     def _generate_rationale(self, regime: MarketRegime, factors: list[str]) -> str:
         """Generate human-readable rationale."""
         if regime == MarketRegime.TREND_UP:

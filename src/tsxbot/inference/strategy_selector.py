@@ -63,18 +63,18 @@ PLAYBOOK_CLASSES = {
 @dataclass
 class SelectionResult:
     """Result of strategy selection."""
-    
+
     playbook_name: str
     playbook_class: type[BaseStrategy]
     score: float
     rationale: str
     skip_reasons: list[str]
     learned_params: dict[str, Any] | None = None
-    
+
     @property
     def should_trade(self) -> bool:
         return len(self.skip_reasons) == 0
-    
+
     def to_dict(self) -> dict:
         return {
             "playbook_name": self.playbook_name,
@@ -88,13 +88,13 @@ class SelectionResult:
 class StrategySelector:
     """
     Selects the best playbook for current market conditions.
-    
+
     Selection criteria:
     1. Regime alignment (does playbook fit current regime?)
     2. Historical performance (from ParameterStore)
     3. Skip conditions (from playbook)
     """
-    
+
     def __init__(
         self,
         config: AppConfig,
@@ -102,10 +102,10 @@ class StrategySelector:
     ):
         self.config = config
         self.param_store = param_store
-        
+
         # Minimum sample size for learned params
         self.min_sample_size = 10
-    
+
     def select(
         self,
         regime_analysis: RegimeAnalysis,
@@ -113,34 +113,34 @@ class StrategySelector:
     ) -> SelectionResult:
         """
         Select best playbook for current regime.
-        
+
         Args:
             regime_analysis: Current regime classification
             session_manager: Optional session manager for playbooks
-        
+
         Returns:
             SelectionResult with selected playbook and rationale
         """
         regime = regime_analysis.regime
         candidates = REGIME_PLAYBOOK_MAPPING.get(regime, ["LevelBounce"])
-        
+
         best_result: SelectionResult | None = None
         best_score = -1.0
-        
+
         for playbook_name in candidates:
             playbook_class = PLAYBOOK_CLASSES.get(playbook_name)
             if not playbook_class:
                 continue
-            
+
             score, rationale = self._score_playbook(
                 playbook_name,
                 regime_analysis,
             )
-            
+
             # Check skip conditions
             playbook_instance = playbook_class(self.config, session_manager)
             skip_reasons = playbook_instance.get_skip_conditions()
-            
+
             if score > best_score:
                 best_score = score
                 best_result = SelectionResult(
@@ -151,7 +151,7 @@ class StrategySelector:
                     skip_reasons=skip_reasons,
                     learned_params=self._get_learned_params(playbook_name, regime.value),
                 )
-        
+
         if best_result is None:
             # Fallback to LevelBounce
             best_result = SelectionResult(
@@ -161,14 +161,14 @@ class StrategySelector:
                 rationale="Default fallback selection",
                 skip_reasons=[],
             )
-        
+
         logger.info(
             f"Selected: {best_result.playbook_name} (score={best_result.score:.2f}, "
             f"regime={regime.value})"
         )
-        
+
         return best_result
-    
+
     def _score_playbook(
         self,
         playbook_name: str,
@@ -177,11 +177,11 @@ class StrategySelector:
         """Score a playbook for current conditions."""
         base_score = 0.5  # Default score
         reasons = []
-        
+
         # 1. Regime confidence boost
         base_score += regime_analysis.confidence * 0.2
         reasons.append(f"Regime confidence: {regime_analysis.confidence:.0%}")
-        
+
         # 2. Historical performance (if available)
         if self.param_store:
             params = self.param_store.get_parameters(
@@ -193,26 +193,26 @@ class StrategySelector:
                 pf_boost = min(0.3, (params.profit_factor - 1.0) * 0.15)
                 base_score += pf_boost
                 reasons.append(f"Historical PF: {params.profit_factor:.2f}")
-                
+
                 # Boost from win rate
                 wr_boost = (params.win_rate - 0.5) * 0.2
                 base_score += wr_boost
                 reasons.append(f"Win rate: {params.win_rate:.0%}")
-        
+
         # 3. Regime-specific adjustments
         regime = regime_analysis.regime
-        
+
         if regime == MarketRegime.TREND_UP and playbook_name == "BreakoutAcceptance":
             base_score += 0.1
             reasons.append("Breakout favored in uptrend")
-        
+
         if regime == MarketRegime.RANGE and playbook_name == "LevelBounce":
             base_score += 0.1
             reasons.append("Bounce favored in range")
-        
+
         rationale = "; ".join(reasons)
         return min(1.0, base_score), rationale
-    
+
     def _get_learned_params(
         self,
         playbook_name: str,
@@ -221,7 +221,7 @@ class StrategySelector:
         """Get learned parameters for playbook/regime."""
         if not self.param_store:
             return None
-        
+
         params = self.param_store.get_parameters(playbook_name, regime)
         if params:
             return {

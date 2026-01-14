@@ -48,7 +48,7 @@ class DecimalEncoder(json.JSONEncoder):
 class StateStore:
     """
     Persist and load trading state to/from disk.
-    
+
     Uses JSON file for simplicity. State includes:
     - Daily P&L tracking
     - Trade count
@@ -64,7 +64,7 @@ class StateStore:
     def load(self, current_balance: Decimal) -> PersistedState:
         """
         Load state from disk.
-        
+
         If state file doesn't exist or is from a different day,
         creates fresh state for today.
         """
@@ -72,7 +72,7 @@ class StateStore:
 
         if self.state_file.exists():
             try:
-                with open(self.state_file, "r") as f:
+                with open(self.state_file) as f:
                     data = json.load(f)
 
                 # Check if same trading day

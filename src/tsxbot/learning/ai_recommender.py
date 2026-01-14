@@ -38,7 +38,7 @@ Your Output MUST be valid JSON:
     "recommendation": "One sentence summary of what to change.",
     "reasoning": "Brief explanation of why based on the data.",
     "suggested_changes": {
-        "parameter_name": "new_value" 
+        "parameter_name": "new_value"
     },
     "confidence": 0.0-1.0
 }

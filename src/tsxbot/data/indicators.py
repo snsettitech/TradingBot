@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Sequence
 
 
 @dataclass
@@ -39,12 +39,12 @@ class VWAPResult:
 def calculate_vwap(bars: Sequence[Bar]) -> Decimal:
     """
     Calculate Volume Weighted Average Price.
-    
+
     VWAP = Σ(Typical Price × Volume) / Σ(Volume)
-    
+
     Args:
         bars: Sequence of OHLCV bars for the day (resets at RTH open)
-    
+
     Returns:
         VWAP value, or Decimal("0") if no volume
     """
@@ -68,11 +68,11 @@ def calculate_vwap(bars: Sequence[Bar]) -> Decimal:
 def calculate_vwap_with_bands(bars: Sequence[Bar], num_std: float = 2.0) -> VWAPResult:
     """
     Calculate VWAP with standard deviation bands.
-    
+
     Args:
         bars: Sequence of OHLCV bars for the day
         num_std: Number of standard deviations for outer bands
-    
+
     Returns:
         VWAPResult with VWAP and band values
     """
@@ -105,7 +105,7 @@ def calculate_vwap_with_bands(bars: Sequence[Bar], num_std: float = 2.0) -> VWAP
         variance_sum = Decimal("0")
         for bar in bars:
             diff = bar.typical_price - vwap
-            variance_sum += (diff ** 2) * bar.volume
+            variance_sum += (diff**2) * bar.volume
 
         variance = variance_sum / cumulative_vol
         # Square root approximation using Newton's method
@@ -138,11 +138,11 @@ def _decimal_sqrt(n: Decimal, precision: int = 10) -> Decimal:
 def calculate_atr(bars: Sequence[Bar], period: int = 14) -> Decimal:
     """
     Calculate Average True Range.
-    
+
     Args:
         bars: Sequence of OHLCV bars
         period: ATR period (default 14)
-    
+
     Returns:
         ATR value
     """

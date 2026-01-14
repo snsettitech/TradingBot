@@ -2,42 +2,48 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  quality:
-    name: Quality Checks
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
+      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-          cache: 'pip'
-
+          python-version: '3.12'
+      
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-
+          pip install ruff pytest
+          pip install -e .
+      
       - name: Lint with Ruff
-        run: |
-          ruff check src/tsxbot tests/
-
+        run: ruff check src/tsxbot
+      
       - name: Format check with Ruff
-        run: |
-          ruff format --check src/tsxbot tests/
+        run: ruff format --check src/tsxbot
 
-      - name: Type check with Mypy
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
         run: |
-          mypy src/tsxbot
-
-      - name: Run Tests (Smoke)
-        # Run basic tests first to ensure critical paths work.
-        # Excluding live/integration tests that might need keys or network.
-        run: |
-          pytest tests/ -v -m "not integration"
+          pip install pytest pytest-asyncio
+          pip install -e .
+      
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
+        env:
+          TRADING_ENVIRONMENT: DEMO

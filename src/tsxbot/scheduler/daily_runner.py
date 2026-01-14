@@ -16,6 +16,7 @@ import signal
 import sys
 from datetime import datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from tsxbot.config_loader import load_config
@@ -36,6 +37,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Default config path
+DEFAULT_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / "config" / "config.yaml"
+
 
 class DailyRunner:
     """
@@ -51,8 +55,14 @@ class DailyRunner:
         self,
         config: AppConfig | None = None,
         broker: BaseBroker | None = None,
+        config_path: Path | str | None = None,
     ):
-        self.config = config or load_config()
+        if config is not None:
+            self.config = config
+        else:
+            cfg_path = config_path or DEFAULT_CONFIG_PATH
+            self.config = load_config(cfg_path)
+        
         self.broker = broker
         
         # Core components

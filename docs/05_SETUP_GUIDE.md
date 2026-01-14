@@ -151,3 +151,36 @@ ALERT_RECIPIENTS=your-email@gmail.com
 ### Verify
 
 Run manually from Task Scheduler to confirm it starts correctly.
+
+---
+
+## 4. Cloud Deployment (Render)
+
+For 24/7 background operation, deploy to Render as a worker service.
+
+### Setup
+
+1. Push your code to GitHub
+2. Go to [render.com](https://render.com) and sign in
+3. Click **New → Blueprint**
+4. Connect your GitHub repo
+5. Render will detect `render.yaml` and create the worker
+
+### Configure Environment Variables
+
+In the Render dashboard, add these secrets:
+- `PROJECTX_API_KEY`
+- `PROJECTX_USERNAME`
+- `API_KEY`, `USERNAME`
+- `OPENAI_API_KEY`
+- `SUPABASE_URL`, `SUPABASE_KEY`
+- `SMTP_USER`, `SMTP_PASSWORD`, `ALERT_RECIPIENTS`
+
+### Pricing
+
+- **Starter**: $7/month (always on, recommended)
+- **Free**: Spins down after inactivity (not suitable)
+
+### Monitoring
+
+View logs in the Render dashboard under **Logs** tab.

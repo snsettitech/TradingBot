@@ -169,3 +169,71 @@ def calculate_atr(bars: Sequence[Bar], period: int = 14) -> Decimal:
         return Decimal("0")
 
     return sum(relevant_trs) / len(relevant_trs)
+
+
+def calculate_ema(prices: Sequence[Decimal], period: int) -> Decimal:
+    """
+    Calculate Exponential Moving Average.
+
+    EMA = Price(t) * k + EMA(y) * (1 - k)
+    where k = 2 / (period + 1)
+
+    Args:
+        prices: Sequence of prices (oldest first)
+        period: EMA period
+
+    Returns:
+        Current EMA value, or Decimal("0") if insufficient data
+    """
+    if len(prices) < period:
+        return Decimal("0")
+
+    # Multiplier
+    k = Decimal("2") / (Decimal(str(period)) + Decimal("1"))
+
+    # Start with SMA for first EMA value
+    sma = sum(prices[:period]) / period
+    ema = sma
+
+    # Calculate EMA for remaining prices
+    for price in prices[period:]:
+        ema = price * k + ema * (Decimal("1") - k)
+
+    return ema
+
+
+def calculate_ema_series(bars: Sequence[Bar], period: int) -> list[Decimal]:
+    """
+    Calculate EMA series for all bars.
+
+    Args:
+        bars: Sequence of OHLCV bars (oldest first)
+        period: EMA period
+
+    Returns:
+        List of EMA values aligned with bars (zeros for insufficient data)
+    """
+    if len(bars) < period:
+        return [Decimal("0")] * len(bars)
+
+    closes = [bar.close for bar in bars]
+    result: list[Decimal] = []
+
+    k = Decimal("2") / (Decimal(str(period)) + Decimal("1"))
+
+    # First period-1 values are zero (insufficient data)
+    for i in range(period - 1):
+        result.append(Decimal("0"))
+
+    # First EMA is SMA
+    sma = sum(closes[:period]) / period
+    result.append(sma)
+    ema = sma
+
+    # Calculate EMA for remaining bars
+    for i in range(period, len(bars)):
+        ema = closes[i] * k + ema * (Decimal("1") - k)
+        result.append(ema)
+
+    return result
+

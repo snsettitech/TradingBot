@@ -1,25 +1,9 @@
 [
   {
-    "timestamp": "2026-01-13T17:01:48.076640",
+    "timestamp": "2026-01-15T00:24:12.630186",
     "strategy": "orbstrategy",
     "regime": "choppy",
     "old_params": {
-      "strategy": "ORBStrategy",
-      "regime": "choppy",
-      "opening_range_minutes": 30,
-      "profit_target_ticks": 0,
-      "stop_loss_ticks": 0,
-      "win_rate": 0.2,
-      "profit_factor": 0.5,
-      "avg_win_ticks": 16.0,
-      "avg_loss_ticks": -8.0,
-      "sample_size": 5,
-      "last_updated": "2026-01-13T17:00:45.438326",
-      "backtest_source": "backtest",
-      "confidence": 0.25,
-      "ai_recommendation": ""
-    },
-    "new_params": {
       "strategy": "ORBStrategy",
       "regime": "choppy",
       "opening_range_minutes": 5,
@@ -35,15 +19,54 @@
       "confidence": 0.05,
       "ai_recommendation": ""
     },
-    "reason": "Learning from backtest backtest (1 trades)",
-    "backtest_trades": 1
+    "new_params": {
+      "strategy": "ORBStrategy",
+      "regime": "choppy",
+      "opening_range_minutes": 5,
+      "profit_target_ticks": 16,
+      "stop_loss_ticks": 8,
+      "win_rate": 0.22857142857142856,
+      "profit_factor": 0.5925925925925926,
+      "avg_win_ticks": 16.0,
+      "avg_loss_ticks": -8.0,
+      "sample_size": 35,
+      "last_updated": "2026-01-15T00:24:12.630186",
+      "backtest_source": "backtest",
+      "confidence": 1.0,
+      "ai_recommendation": ""
+    },
+    "reason": "Learning from backtest backtest (35 trades)",
+    "backtest_trades": 35
   },
   {
-    "timestamp": "2026-01-13T17:01:48.080102",
+    "timestamp": "2026-01-15T00:24:12.633184",
     "strategy": "orbstrategy",
-    "regime": "trending",
+    "regime": "normal",
     "old_params": {},
     "new_params": {
+      "strategy": "ORBStrategy",
+      "regime": "normal",
+      "opening_range_minutes": 5,
+      "profit_target_ticks": 16,
+      "stop_loss_ticks": 8,
+      "win_rate": 0.28125,
+      "profit_factor": 0.782608695652174,
+      "avg_win_ticks": 16.0,
+      "avg_loss_ticks": -8.0,
+      "sample_size": 32,
+      "last_updated": "2026-01-15T00:24:12.633184",
+      "backtest_source": "backtest",
+      "confidence": 1.0,
+      "ai_recommendation": ""
+    },
+    "reason": "Learning from backtest backtest (32 trades)",
+    "backtest_trades": 32
+  },
+  {
+    "timestamp": "2026-01-15T00:24:12.638247",
+    "strategy": "orbstrategy",
+    "regime": "trending",
+    "old_params": {
       "strategy": "ORBStrategy",
       "regime": "trending",
       "opening_range_minutes": 5,
@@ -59,7 +82,23 @@
       "confidence": 0.05,
       "ai_recommendation": ""
     },
-    "reason": "Learning from backtest backtest (1 trades)",
-    "backtest_trades": 1
+    "new_params": {
+      "strategy": "ORBStrategy",
+      "regime": "trending",
+      "opening_range_minutes": 5,
+      "profit_target_ticks": 16,
+      "stop_loss_ticks": 8,
+      "win_rate": 0.3118279569892473,
+      "profit_factor": 0.90625,
+      "avg_win_ticks": 16.0,
+      "avg_loss_ticks": -8.0,
+      "sample_size": 93,
+      "last_updated": "2026-01-15T00:24:12.638247",
+      "backtest_source": "backtest",
+      "confidence": 1.0,
+      "ai_recommendation": ""
+    },
+    "reason": "Learning from backtest backtest (93 trades)",
+    "backtest_trades": 93
   }
 ]

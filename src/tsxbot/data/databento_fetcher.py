@@ -15,6 +15,9 @@ import asyncio
 import csv
 import logging
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -98,7 +101,8 @@ class DatabentoFetcher:
         # Databento uses dataset and symbol format
         # ES futures: CME.ES.FUT for continuous contract
         dataset = "GLBX.MDP3"  # CME Globex
-        symbols = [f"{symbol}.FUT"]  # Continuous front-month
+        # Use continuous front-month contract
+        symbols = ["ES.c.0"]
 
         result = HistoricalDataResult(
             symbol=symbol,
@@ -113,6 +117,7 @@ class DatabentoFetcher:
             data = client.timeseries.get_range(
                 dataset=dataset,
                 symbols=symbols,
+                stype_in="continuous",
                 schema="ohlcv-1m",  # 1-minute OHLCV
                 start=start.isoformat(),
                 end=end.isoformat(),

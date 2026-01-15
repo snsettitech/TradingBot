@@ -61,6 +61,7 @@ class StrategyName(str, Enum):
     BOS_PULLBACK = "bos_pullback"
     VWAP_BOUNCE = "vwap_bounce"
     MEAN_REVERSION = "mean_reversion"
+    EMA_CLOUD = "ema_cloud"
 
 
 class LogLevel(str, Enum):

@@ -58,15 +58,33 @@ Respond ONLY with valid JSON (no markdown):
 }"""
 
 
-def build_pre_trade_prompt(signal_info: str, market_context: str) -> str:
-    """Build the user prompt for pre-trade validation."""
+def build_pre_trade_prompt(
+    signal_info: str, market_context: str, recent_lessons: list[str] | None = None
+) -> str:
+    """Build the user prompt for pre-trade validation.
+    
+    Args:
+        signal_info: Signal details string.
+        market_context: Market context string.
+        recent_lessons: Optional list of lessons from previous trades.
+    """
+    lessons_section = ""
+    if recent_lessons:
+        lessons_text = "\n".join(f"- {lesson}" for lesson in recent_lessons[-5:])  # Last 5
+        lessons_section = f"""
+
+LESSONS FROM RECENT TRADES:
+{lessons_text}
+
+Consider these lessons when evaluating this setup."""
+
     return f"""Review this trade signal:
 
 SIGNAL:
 {signal_info}
 
 MARKET CONTEXT:
-{market_context}
+{market_context}{lessons_section}
 
 Provide your analysis as a Senior Trader."""
 

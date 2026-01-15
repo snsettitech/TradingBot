@@ -72,8 +72,10 @@ def smoke_test(config):
 @click.option("--days", default=30, help="Days of data to fetch/generate")
 @click.option("--projectx", is_flag=True, help="Use real historical data from ProjectX API")
 @click.option("--ai", is_flag=True, help="Enable AI analysis and learning")
+@click.option("--feedback", is_flag=True, help="Enable AI feedback loop (pre/post trade learning)")
+@click.option("--threshold", default=0.6, help="AI confidence threshold for feedback mode (0-1)")
 @click.option("--report", is_flag=True, help="Generate HTML report with charts")
-def backtest(config, strategy, data, days, projectx, ai, report):
+def backtest(config, strategy, data, days, projectx, ai, feedback, threshold, report):
     """Run strategy backtest with historical data."""
     from tsxbot.backtest.data_loader import HistoricalDataLoader
     from tsxbot.backtest.engine import BacktestEngine
@@ -123,20 +125,26 @@ def backtest(config, strategy, data, days, projectx, ai, report):
     bars = loader.filter_rth(bars)
     click.echo(f"Using {len(bars)} RTH bars")
 
-    # Setup AI if requested
+    # Setup AI if requested (for --ai or --feedback modes)
     ai_advisor = None
-    if ai and cfg.openai.enabled:
+    if (ai or feedback) and cfg.openai.enabled:
         from tsxbot.ai.advisor import AIAdvisor
 
         ai_advisor = AIAdvisor(cfg.openai, dry_run=True)
-        click.echo("AI analysis enabled")
+        click.echo("AI Advisor initialized")
 
     # Run backtest
     engine = BacktestEngine(config=cfg, strategy=strat, ai_advisor=ai_advisor)
     engine.load_data(bars)
 
     click.echo("\nRunning backtest...")
-    result = asyncio.run(engine.run_with_ai()) if ai else engine.run()
+    if feedback:
+        click.echo(f"AI Feedback Loop enabled (threshold={threshold:.0%})")
+        result = asyncio.run(engine.run_with_feedback(confidence_threshold=threshold))
+    elif ai:
+        result = asyncio.run(engine.run_with_ai())
+    else:
+        result = engine.run()
 
     # Print results
     click.echo("\n" + "=" * 60)

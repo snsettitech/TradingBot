@@ -363,3 +363,168 @@ class BacktestEngine:
                 f"Best performance in {best_regime[0]} markets ({best_regime[1]['win_rate']:.0%} win rate). "
                 f"Consider reducing size in {worst_regime[0]} conditions."
             )
+
+    async def run_with_feedback(self, confidence_threshold: float = 0.6) -> BacktestResult:
+        """
+        Run backtest with AI feedback loop (Online Learning).
+
+        For each potential trade:
+        1. Pre-Trade: AI validates signal with lessons from previous trades
+        2. If approved: Execute trade and simulate outcome
+        3. Post-Trade: AI analyzes result and extracts lessons
+        4. Lessons are fed into the next pre-trade validation
+
+        Args:
+            confidence_threshold: Minimum AI confidence (0-1) to take trade.
+
+        Returns:
+            BacktestResult with all trades and AI insights.
+        """
+        if not self.bars:
+            raise ValueError("No data loaded. Call load_data() first.")
+
+        if not self.ai_advisor or not self.ai_advisor.is_available:
+            logger.warning("AI not available, falling back to standard backtest")
+            return self.run()
+
+        from tsxbot.ai.models import MarketContext, TradeResult
+
+        logger.info(
+            f"Starting AI Feedback backtest: {len(self.bars)} bars, "
+            f"strategy={self.strategy.__class__.__name__}, threshold={confidence_threshold:.0%}"
+        )
+
+        # Track lessons learned across trades
+        accumulated_lessons: list[str] = []
+        trades_validated = 0
+        trades_rejected = 0
+
+        for i, bar in enumerate(self.bars):
+            self.current_bar_idx = i
+
+            # Check for new session
+            if self.current_session_date != bar.timestamp.date():
+                self._reset_session(bar)
+
+            # Update session levels
+            self._update_session_levels(bar)
+
+            # Check stops/targets on open position
+            if self.current_position:
+                # Check if position closed this bar
+                prev_trade_count = len(self.trades)
+                self._check_exit_conditions(bar)
+
+                # If trade just closed, analyze it
+                if len(self.trades) > prev_trade_count:
+                    closed_trade = self.trades[-1]
+                    lessons = await self._analyze_single_trade(closed_trade)
+                    if lessons:
+                        accumulated_lessons.extend(lessons)
+                        logger.info(f"[AI] Learned: {lessons[0][:50]}...")
+
+            # Only generate new signals if no position
+            if not self.current_position:
+                signals = self._generate_signals(bar)
+                if signals:
+                    signal = signals[0]
+
+                    # Build market context for AI
+                    context = MarketContext(
+                        symbol=bar.symbol,
+                        timestamp=bar.timestamp,
+                        current_price=bar.close,
+                        session_high=self.session_high,
+                        session_low=self.session_low,
+                        vwap=self.vwap,
+                    )
+
+                    # Pre-trade validation with lessons
+                    validation = await self.ai_advisor.validate_trade(
+                        signal=signal,
+                        context=context,
+                        recent_lessons=accumulated_lessons,
+                    )
+
+                    if validation and validation.confidence >= confidence_threshold * 10:
+                        trades_validated += 1
+                        logger.debug(
+                            f"[AI APPROVED] {signal.direction.value} @ {bar.close} "
+                            f"confidence={validation.confidence}/10"
+                        )
+                        self._open_position(signal, bar)
+                    else:
+                        trades_rejected += 1
+                        conf = validation.confidence if validation else 0
+                        logger.debug(
+                            f"[AI REJECTED] {signal.direction.value} @ {bar.close} "
+                            f"confidence={conf}/10 < threshold={confidence_threshold*10}"
+                        )
+
+        # Close any open position at end
+        if self.current_position:
+            self._close_position(self.bars[-1], "End of backtest")
+
+        # Build result
+        result = BacktestResult(
+            strategy=self.strategy.__class__.__name__,
+            symbol=self.bars[0].symbol if self.bars else "ES",
+            start_date=self.bars[0].timestamp if self.bars else datetime.now(),
+            end_date=self.bars[-1].timestamp if self.bars else datetime.now(),
+            trades=self.trades,
+            total_fees=self.fee_per_trade * len(self.trades),
+        )
+        result.calculate_metrics()
+
+        # Add AI stats to result
+        result.ai_recommendation = (
+            f"AI Feedback Loop: {trades_validated} trades approved, "
+            f"{trades_rejected} rejected. {len(accumulated_lessons)} lessons learned."
+        )
+
+        logger.info(
+            f"AI Feedback backtest complete: {len(self.trades)} trades "
+            f"(approved={trades_validated}, rejected={trades_rejected})"
+        )
+        return result
+
+    async def _analyze_single_trade(self, trade: TradeRecord) -> list[str]:
+        """Analyze a single completed trade and return lessons."""
+        if not self.ai_advisor:
+            return []
+
+        try:
+            from tsxbot.ai.models import MarketContext, TradeResult
+
+            trade_result = TradeResult(
+                symbol=trade.symbol,
+                direction=trade.direction,
+                entry_price=trade.entry_price,
+                exit_price=trade.exit_price,
+                quantity=trade.quantity,
+                pnl_ticks=trade.pnl_ticks,
+                pnl_usd=trade.pnl_dollars,
+                duration_seconds=int(trade.hold_time_minutes * 60),
+                exit_reason="stop" if trade.pnl_ticks < 0 else "target",
+                signal_reason=trade.entry_reason,
+            )
+
+            trade_result.entry_context = MarketContext(
+                symbol=trade.symbol,
+                timestamp=trade.entry_time,
+                current_price=trade.entry_price,
+                session_high=trade.entry_price + Decimal("5"),
+                session_low=trade.entry_price - Decimal("5"),
+            )
+
+            analysis = await self.ai_advisor.analyze_completed_trade(trade_result)
+
+            if analysis and analysis.lessons:
+                trade.ai_grade = analysis.grade
+                trade.ai_lessons = analysis.lessons
+                return analysis.lessons
+
+        except Exception as e:
+            logger.warning(f"AI single-trade analysis failed: {e}")
+
+        return []

@@ -364,6 +364,41 @@ class MeanReversionStrategyConfig(BaseModel):
         return v.lower()
 
 
+class EMACloudStrategyConfig(BaseModel):
+    """Ripster EMA Cloud strategy configuration."""
+
+    # EMA periods
+    fast_ema_short: int = 5
+    fast_ema_long: int = 12
+    trend_ema_short: int = 34
+    trend_ema_long: int = 50
+
+    # Bar aggregation
+    bar_minutes: int = 10
+
+    # Trade limits
+    max_trades: int = 3
+    cooldown_minutes: int = 15
+
+    # Filters
+    min_cloud_separation_ticks: int = 2  # Prevent trading flat EMAs
+    min_volume_ratio: float = 0.5  # Bar volume must be > 50% of session avg
+
+    # Stop buffer (ticks beyond trend cloud)
+    stop_buffer_ticks: int = 2
+
+    # Direction filter
+    direction: str = "both"
+
+    @field_validator("direction")
+    @classmethod
+    def validate_direction(cls, v: str) -> str:
+        valid = {"long", "short", "both"}
+        if v.lower() not in valid:
+            raise ValueError(f"Direction must be one of {valid}, got: {v}")
+        return v.lower()
+
+
 class StrategyConfig(BaseModel):
     """Strategy selection and parameters."""
 
@@ -374,6 +409,7 @@ class StrategyConfig(BaseModel):
     bos_pullback: BOSPullbackStrategyConfig = Field(default_factory=BOSPullbackStrategyConfig)
     vwap_bounce: VWAPBounceStrategyConfig = Field(default_factory=VWAPBounceStrategyConfig)
     mean_reversion: MeanReversionStrategyConfig = Field(default_factory=MeanReversionStrategyConfig)
+    ema_cloud: EMACloudStrategyConfig = Field(default_factory=EMACloudStrategyConfig)
 
 
 class JournalConfig(BaseModel):

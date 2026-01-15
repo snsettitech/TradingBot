@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backtest Report - VWAPBounceStrategy</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d4ff;
+            font-size: 2.5rem;
+        }
+        .header {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .header h2 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #888;
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform 0.2s;
+        }
+        .metric-card:hover {
+            transform: translateY(-3px);
+        }
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #00d4ff;
+        }
+        .metric-value.positive { color: #00ff88; }
+        .metric-value.negative { color: #ff4444; }
+        .metric-label {
+            color: #888;
+            margin-top: 5px;
+        }
+        .chart-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .chart-container h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+        .chart-wrapper {
+            height: 300px;
+        }
+        .regime-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .regime-table th, .regime-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .regime-table th {
+            color: #00d4ff;
+        }
+        .ai-insight {
+            background: linear-gradient(135deg, rgba(0,212,255,0.1) 0%, rgba(0,255,136,0.1) 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid rgba(0,212,255,0.3);
+        }
+        .ai-insight h3 {
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        .trades-table th, .trades-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .trades-table th {
+            color: #00d4ff;
+            background: rgba(0,0,0,0.2);
+        }
+        .win { color: #00ff88; }
+        .loss { color: #ff4444; }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Backtest Report</h1>
+
+        <div class="header">
+            <h2>VWAPBounceStrategy</h2>
+            <p>Period: 2025-09-01 to 2026-01-13 | Symbol: ES</p>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-value">35</div>
+                <div class="metric-label">Total Trades</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">28.6%</div>
+                <div class="metric-label">Win Rate</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value negative">$-515.00</div>
+                <div class="metric-label">Net P&L</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">0.80</div>
+                <div class="metric-label">Profit Factor</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value negative">-$825.00</div>
+                <div class="metric-label">Max Drawdown</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">10 / 25</div>
+                <div class="metric-label">Winners / Losers</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>📈 Equity Curve</h3>
+            <div class="chart-wrapper">
+                <canvas id="equityChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h3>📊 P&L by Regime</h3>
+            <table class="regime-table">
+                <thead>
+                    <tr>
+                        <th>Regime</th>
+                        <th>Trades</th>
+                        <th>Win Rate</th>
+                        <th>P&L</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                <tr>
+                    <td>High_Volatility</td>
+                    <td>27</td>
+                    <td>37%</td>
+                    <td class="win">$225.00</td>
+                </tr>
+            
+
+                <tr>
+                    <td>Normal</td>
+                    <td>7</td>
+                    <td>0%</td>
+                    <td class="loss">$-525.00</td>
+                </tr>
+            
+
+                <tr>
+                    <td>Choppy</td>
+                    <td>1</td>
+                    <td>0%</td>
+                    <td class="loss">$-75.00</td>
+                </tr>
+            
+                </tbody>
+            </table>
+        </div>
+
+        
+
+        <div class="chart-container">
+            <h3>📝 Trade Log (Last 20)</h3>
+            <table class="trades-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Direction</th>
+                        <th>Entry</th>
+                        <th>Exit</th>
+                        <th>P&L</th>
+                        <th>Regime</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                <tr>
+                    <td>10/30 13:01</td>
+                    <td>LONG</td>
+                    <td>$6895.00</td>
+                    <td>$6893.50</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>10/31 11:30</td>
+                    <td>LONG</td>
+                    <td>$6889.25</td>
+                    <td>$6892.25</td>
+                    <td class="win">$150.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>11/05 11:20</td>
+                    <td>LONG</td>
+                    <td>$6816.50</td>
+                    <td>$6819.50</td>
+                    <td class="win">$150.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>11/10 12:23</td>
+                    <td>SHORT</td>
+                    <td>$6816.75</td>
+                    <td>$6813.75</td>
+                    <td class="win">$150.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>11/27 11:18</td>
+                    <td>SHORT</td>
+                    <td>$6826.75</td>
+                    <td>$6828.25</td>
+                    <td class="loss">$-75.00</td>
+                    <td>choppy</td>
+                </tr>
+            
+
+                <tr>
+                    <td>11/28 12:31</td>
+                    <td>LONG</td>
+                    <td>$6848.50</td>
+                    <td>$6851.50</td>
+                    <td class="win">$150.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/02 14:12</td>
+                    <td>SHORT</td>
+                    <td>$6841.50</td>
+                    <td>$6843.00</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/04 11:23</td>
+                    <td>SHORT</td>
+                    <td>$6858.75</td>
+                    <td>$6860.25</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/05 13:44</td>
+                    <td>SHORT</td>
+                    <td>$6884.75</td>
+                    <td>$6886.25</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/09 12:35</td>
+                    <td>LONG</td>
+                    <td>$6862.75</td>
+                    <td>$6861.25</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/10 13:33</td>
+                    <td>LONG</td>
+                    <td>$6847.25</td>
+                    <td>$6850.25</td>
+                    <td class="win">$150.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/16 12:07</td>
+                    <td>SHORT</td>
+                    <td>$6799.00</td>
+                    <td>$6796.00</td>
+                    <td class="win">$150.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/26 14:40</td>
+                    <td>SHORT</td>
+                    <td>$6979.25</td>
+                    <td>$6980.75</td>
+                    <td class="loss">$-75.00</td>
+                    <td>normal</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/29 13:48</td>
+                    <td>SHORT</td>
+                    <td>$6950.25</td>
+                    <td>$6947.25</td>
+                    <td class="win">$150.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/30 11:45</td>
+                    <td>LONG</td>
+                    <td>$6951.25</td>
+                    <td>$6949.75</td>
+                    <td class="loss">$-75.00</td>
+                    <td>normal</td>
+                </tr>
+            
+
+                <tr>
+                    <td>12/31 13:30</td>
+                    <td>SHORT</td>
+                    <td>$6925.75</td>
+                    <td>$6927.25</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/07 13:16</td>
+                    <td>LONG</td>
+                    <td>$6992.25</td>
+                    <td>$6990.75</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/08 14:07</td>
+                    <td>LONG</td>
+                    <td>$6958.75</td>
+                    <td>$6957.25</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/13 11:33</td>
+                    <td>SHORT</td>
+                    <td>$7001.75</td>
+                    <td>$7003.25</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+
+                <tr>
+                    <td>01/13 12:42</td>
+                    <td>LONG</td>
+                    <td>$7004.25</td>
+                    <td>$7002.75</td>
+                    <td class="loss">$-75.00</td>
+                    <td>high_volatility</td>
+                </tr>
+            
+                </tbody>
+            </table>
+        </div>
+
+        <footer>
+            Generated by TSXBot | 2026-01-15 00:28:13
+        </footer>
+    </div>
+
+    <script>
+        const ctx = document.getElementById('equityChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['09/02', '09/03', '09/08', '09/08', '09/09', '09/10', '09/15', '09/16', '09/25', '09/29', '10/02', '10/09', '10/24', '10/28', '10/29', '10/30', '10/31', '11/05', '11/10', '11/27', '11/28', '12/02', '12/04', '12/05', '12/09', '12/10', '12/16', '12/26', '12/29', '12/30', '12/31', '01/07', '01/08', '01/13', '01/13'],
+                datasets: [{
+                    label: 'Equity Curve',
+                    data: [150.0, 300.0, 225.0, 150.0, 75.0, 0.0, -75.0, -150.0, -225.0, -300.0, -375.0, -450.0, -300.0, -375.0, -450.0, -525.0, -375.0, -225.0, -75.0, -150.0, 0.0, -75.0, -150.0, -225.0, -300.0, -150.0, 0.0, -75.0, 75.0, 0.0, -75.0, -150.0, -225.0, -300.0, -375.0],
+                    borderColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#888' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.1)' },
+                        ticks: { color: '#888' }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

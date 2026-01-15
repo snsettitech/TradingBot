@@ -126,8 +126,14 @@ class HistoricalDataLoader:
             reader = csv.DictReader(f)
             for row in reader:
                 try:
+                    ts_str = row["timestamp"]
+                    if "T" in ts_str:
+                        timestamp = datetime.fromisoformat(ts_str)
+                    else:
+                        timestamp = datetime.strptime(ts_str, date_format)
+
                     bar = Bar(
-                        timestamp=datetime.strptime(row["timestamp"], date_format),
+                        timestamp=timestamp,
                         open=Decimal(row["open"]),
                         high=Decimal(row["high"]),
                         low=Decimal(row["low"]),

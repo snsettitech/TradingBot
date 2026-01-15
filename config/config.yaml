@@ -258,6 +258,33 @@ strategy:
     # Direction: "long", "short", or "both"
     direction: "both"
 
+  # ----------------------------------------
+  # Ripster EMA Cloud Strategy (10-min bars)
+  # ----------------------------------------
+  ema_cloud:
+    # EMA periods
+    fast_ema_short: 5
+    fast_ema_long: 12
+    trend_ema_short: 34
+    trend_ema_long: 50
+    
+    # Bar aggregation (minutes)
+    bar_minutes: 10
+    
+    # Trade limits
+    max_trades: 3
+    cooldown_minutes: 15
+    
+    # Filters
+    min_cloud_separation_ticks: 2  # Don't trade flat EMAs
+    min_volume_ratio: 0.5  # Bar volume must be > 50% of session avg
+    
+    # Stop buffer (ticks beyond trend cloud)
+    stop_buffer_ticks: 2
+    
+    # Direction: "long", "short", or "both"
+    direction: "both"
+
 # ============================================
 # Journal / Logging Configuration
 # ============================================

@@ -108,7 +108,10 @@ class AIAdvisor:
         self._request_count += 1
 
     async def validate_trade(
-        self, signal: TradeSignal, context: MarketContext
+        self,
+        signal: TradeSignal,
+        context: MarketContext,
+        recent_lessons: list[str] | None = None,
     ) -> TradeValidation | None:
         """
         Pre-trade validation: Analyze signal with market context.
@@ -116,6 +119,7 @@ class AIAdvisor:
         Args:
             signal: The trade signal from strategy.
             context: Current market context snapshot.
+            recent_lessons: Optional lessons from previous trades for learning.
 
         Returns:
             TradeValidation with confidence and observations, or None on failure.
@@ -141,7 +145,9 @@ class AIAdvisor:
 
             # Build the prompt
             user_prompt = build_pre_trade_prompt(
-                signal_info=signal_info, market_context=context.to_prompt_context()
+                signal_info=signal_info,
+                market_context=context.to_prompt_context(),
+                recent_lessons=recent_lessons,
             )
 
             # Call OpenAI

@@ -5,14 +5,14 @@ orbstrategy:
     opening_range_minutes: 5
     profit_target_ticks: 16
     stop_loss_ticks: 8
-    win_rate: 0.0
-    profit_factor: 0.0
-    avg_win_ticks: 0.0
+    win_rate: 0.22857142857142856
+    profit_factor: 0.5925925925925926
+    avg_win_ticks: 16.0
     avg_loss_ticks: -8.0
-    sample_size: 1
-    last_updated: '2026-01-13T17:01:48.076640'
+    sample_size: 35
+    last_updated: '2026-01-15T00:24:12.630186'
     backtest_source: backtest
-    confidence: 0.05
+    confidence: 1.0
     ai_recommendation: ''
   trending:
     strategy: ORBStrategy
@@ -20,12 +20,27 @@ orbstrategy:
     opening_range_minutes: 5
     profit_target_ticks: 16
     stop_loss_ticks: 8
-    win_rate: 0.0
-    profit_factor: 0.0
-    avg_win_ticks: 0.0
+    win_rate: 0.3118279569892473
+    profit_factor: 0.90625
+    avg_win_ticks: 16.0
     avg_loss_ticks: -8.0
-    sample_size: 1
-    last_updated: '2026-01-13T17:01:48.080102'
+    sample_size: 93
+    last_updated: '2026-01-15T00:24:12.638247'
     backtest_source: backtest
-    confidence: 0.05
+    confidence: 1.0
+    ai_recommendation: ''
+  normal:
+    strategy: ORBStrategy
+    regime: normal
+    opening_range_minutes: 5
+    profit_target_ticks: 16
+    stop_loss_ticks: 8
+    win_rate: 0.28125
+    profit_factor: 0.782608695652174
+    avg_win_ticks: 16.0
+    avg_loss_ticks: -8.0
+    sample_size: 32
+    last_updated: '2026-01-15T00:24:12.633184'
+    backtest_source: backtest
+    confidence: 1.0
     ai_recommendation: ''

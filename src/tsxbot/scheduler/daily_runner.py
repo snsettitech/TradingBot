@@ -4,8 +4,9 @@ Runs the full signal generation pipeline during RTH:
 1. Wait for RTH open
 2. Initialize components (LevelStore, InteractionDetector, etc.)
 3. Monitor market and generate signals
-4. Send alerts via email
-5. Shutdown at RTH end
+4. AI validates signals before alerting
+5. Send alerts via email
+6. Shutdown at RTH end
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ import sys
 from datetime import datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from tsxbot.config_loader import load_config
 from tsxbot.inference.regime_classifier import RegimeClassifier
@@ -40,15 +41,19 @@ logger = logging.getLogger(__name__)
 # Default config path
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent.parent.parent / "config" / "config.yaml"
 
+# AI validation threshold
+AI_CONFIDENCE_THRESHOLD = 0.6
+
 
 class DailyRunner:
     """
-    Orchestrates daily automated signal generation.
+    Orchestrates daily automated signal generation with AI validation.
 
     Lifecycle:
     1. Initialize before RTH
     2. Run during RTH
-    3. Cleanup and report after RTH
+    3. AI validates each signal before alerting
+    4. Cleanup and report after RTH
     """
 
     def __init__(
@@ -56,6 +61,7 @@ class DailyRunner:
         config: AppConfig | None = None,
         broker: BaseBroker | None = None,
         config_path: Path | str | None = None,
+        enable_ai: bool = True,
     ):
         if config is not None:
             self.config = config
@@ -64,6 +70,7 @@ class DailyRunner:
             self.config = load_config(cfg_path)
 
         self.broker = broker
+        self.enable_ai = enable_ai
 
         # Core components
         self.session_manager = SessionManager(self.config.session)
@@ -83,6 +90,11 @@ class DailyRunner:
             flatten_time_str=self.config.session.flatten_time,
         )
 
+        # AI components
+        self.ai_advisor = None
+        if self.enable_ai:
+            self._init_ai_advisor()
+
         # Alerting
         self.email_sender = EmailSender()
         self.alert_engine = AlertEngine(on_alert=self._handle_alert)
@@ -91,7 +103,27 @@ class DailyRunner:
         self._running = False
         self._tick_count = 0
         self._signals_generated = 0
+        self._signals_ai_validated = 0
+        self._signals_ai_rejected = 0
         self._bar_data: list[tuple[datetime, Decimal]] = []
+
+    def _init_ai_advisor(self) -> None:
+        """Initialize AI advisor if OpenAI is configured."""
+        try:
+            from tsxbot.ai.advisor import AIAdvisor
+
+            self.ai_advisor = AIAdvisor(
+                config=self.config.openai,
+                dry_run=self.config.is_dry_run,
+            )
+            if self.ai_advisor.is_available():
+                logger.info("AI Advisor initialized")
+            else:
+                logger.warning("AI Advisor not available (check OPENAI_API_KEY)")
+                self.ai_advisor = None
+        except ImportError:
+            logger.warning("AI Advisor module not available")
+            self.ai_advisor = None
 
     async def run(self) -> None:
         """
@@ -237,7 +269,7 @@ class DailyRunner:
         current_price: Decimal,
         timestamp: datetime,
     ) -> None:
-        """Process a detected level interaction."""
+        """Process a detected level interaction with AI validation."""
         levels = self.level_store.get_current_levels()
 
         # Get current snapshot
@@ -266,6 +298,21 @@ class DailyRunner:
             if signal:
                 self._signals_generated += 1
 
+                # AI Validation Gate
+                if self.ai_advisor and self.ai_advisor.is_available():
+                    validation = await self._validate_with_ai(signal, snapshot)
+                    
+                    if validation is None or validation.confidence < AI_CONFIDENCE_THRESHOLD:
+                        self._signals_ai_rejected += 1
+                        logger.info(
+                            f"Signal rejected by AI: {signal.direction.value} "
+                            f"(confidence: {validation.confidence:.0%} if validation else 'N/A'})"
+                        )
+                        return
+                    
+                    self._signals_ai_validated += 1
+                    logger.info(f"Signal validated by AI: {validation.confidence:.0%}")
+
                 # Generate packet
                 packet = self.signal_generator.generate(
                     signal=signal,
@@ -275,6 +322,23 @@ class DailyRunner:
 
                 # Send alert
                 self.alert_engine.on_signal(packet)
+
+    async def _validate_with_ai(self, signal, snapshot) -> Any:
+        """Validate signal with AI advisor."""
+        try:
+            from tsxbot.ai.models import MarketContext
+
+            context = MarketContext(
+                regime=snapshot.regime.value if snapshot.regime else "unknown",
+                trend=snapshot.trend_direction if snapshot.trend_direction else "unknown",
+                time_of_day=snapshot.time_of_day if snapshot.time_of_day else "unknown",
+                vwap_distance=float(snapshot.distance_from_vwap_pct) if snapshot.distance_from_vwap_pct else 0,
+            )
+
+            return await self.ai_advisor.validate_trade(signal, context)
+        except Exception as e:
+            logger.warning(f"AI validation failed: {e}")
+            return None
 
     def _handle_alert(self, alert: Alert) -> None:
         """Handle an alert by sending email."""
@@ -287,11 +351,16 @@ class DailyRunner:
             logger.error(f"Failed to send alert email: {e}")
 
     def _generate_session_summary(self) -> str:
-        """Generate end-of-session summary."""
+        """Generate end-of-session summary with AI stats."""
+        ai_status = "N/A"
+        if self.ai_advisor:
+            ai_status = f"Validated: {self._signals_ai_validated}, Rejected: {self._signals_ai_rejected}"
+        
         return f"""
 Session Summary:
 - Ticks processed: {self._tick_count}
 - Signals generated: {self._signals_generated}
+- AI validation: {ai_status}
 - Session ended: {self.session_manager.now().strftime("%H:%M ET")}
         """.strip()
 

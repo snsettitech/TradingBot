@@ -58,13 +58,17 @@ async def test_daily_runner_tick_archival(mock_config):
 async def test_daily_runner_ai_init(mock_config):
     """Test AI initialization."""
     with patch("tsxbot.ai.advisor.AIAdvisor") as mock_ai:
-        mock_ai.return_value.is_available.return_value = True
+        # Mock is_available as a property by assigning directly to valid boolean
+        # Note: We configure the instance returned by constructor
+        instance = mock_ai.return_value
+        instance.is_available = True
         
         runner = DailyRunner(config=mock_config, enable_ai=True)
         assert runner.ai_advisor is not None
         
     with patch("tsxbot.ai.advisor.AIAdvisor") as mock_ai:
-        mock_ai.return_value.is_available.return_value = False
+        instance = mock_ai.return_value
+        instance.is_available = False
         
         runner = DailyRunner(config=mock_config, enable_ai=True)
         assert runner.ai_advisor is None

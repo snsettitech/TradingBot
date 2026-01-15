@@ -123,7 +123,7 @@ class DailyRunner:
                 config=self.config.openai,
                 dry_run=self.config.is_dry_run,
             )
-            if self.ai_advisor.is_available():
+            if self.ai_advisor.is_available:
                 logger.info("AI Advisor initialized")
             else:
                 logger.warning("AI Advisor not available (check OPENAI_API_KEY)")
@@ -309,7 +309,7 @@ class DailyRunner:
                 self._signals_generated += 1
 
                 # AI Validation Gate
-                if self.ai_advisor and self.ai_advisor.is_available():
+                if self.ai_advisor and self.ai_advisor.is_available:
                     validation = await self._validate_with_ai(signal, snapshot)
                     
                     if validation is None or validation.confidence < AI_CONFIDENCE_THRESHOLD:

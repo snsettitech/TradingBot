@@ -10,15 +10,12 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy project
+# Copy project files
 COPY . .
 
-# Install the package
+# Install the package and all dependencies from pyproject.toml
 RUN pip install --no-cache-dir -e .
 
 # Run the daily runner
 CMD ["python", "-m", "tsxbot.scheduler.daily_runner"]
+

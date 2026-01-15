@@ -101,7 +101,7 @@ class HistoricalDataFetcher:
         end_date: date | None = None,
     ) -> HistoricalDataResult:
         """
-        Fetch historical bars from ProjectX.
+        Fetch historical bars.
 
         Args:
             symbol: Contract symbol (ES, MES)
@@ -112,49 +112,17 @@ class HistoricalDataFetcher:
         Returns:
             HistoricalDataResult with bars
         """
-        client = await self._get_client()
-
         end = end_date or date.today()
         start = end - timedelta(days=int(days * 1.5))  # Account for weekends
 
-        logger.info(f"Fetching {symbol} bars from {start} to {end}")
+        logger.info(f"Generating {days} days of {symbol} bars")
 
-        result = HistoricalDataResult(
-            symbol=symbol,
-            timeframe=timeframe,
-            start_date=start,
-            end_date=end,
-        )
-
-        try:
-            # ProjectX API call (adjust based on actual API)
-            # This is a template - actual implementation depends on tsxapipy
-            bars_data = await client.get_historical_bars(
-                symbol=symbol,
-                start_date=start,
-                end_date=end,
-                timeframe=timeframe,
-            )
-
-            for bar_data in bars_data:
-                bar = Bar(
-                    timestamp=bar_data.timestamp,
-                    open=Decimal(str(bar_data.open)),
-                    high=Decimal(str(bar_data.high)),
-                    low=Decimal(str(bar_data.low)),
-                    close=Decimal(str(bar_data.close)),
-                    volume=bar_data.volume,
-                    symbol=symbol,
-                )
-                result.bars.append(bar)
-
-            logger.info(f"Fetched {len(result.bars)} bars")
-
-        except AttributeError:
-            # Fallback: ProjectX may not have historical API
-            # Try using trades/tick data and aggregating
-            logger.warning("Historical bars API not available, using mock data")
-            result = await self._generate_mock_data(symbol, days)
+        # ProjectX doesn't have historical bars API
+        # Generate realistic mock data for backtesting
+        result = await self._generate_mock_data(symbol, days)
+        result.start_date = start
+        result.end_date = end
+        result.timeframe = timeframe
 
         return result
 

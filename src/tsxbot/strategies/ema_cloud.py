@@ -95,18 +95,20 @@ class EMACloudStrategy(BaseStrategy):
         self.logger = logging.getLogger(__name__)
         self.reset()
 
-    def reset(self) -> None:
+    def reset(self, keep_history: bool = False) -> None:
         """Reset strategy state for new session."""
         self.session_date = None
         self.tick_size = Decimal("0.25")
 
         # Bar aggregation
-        self.bars: list[Bar] = []
+        if not keep_history:
+            self.bars: list[Bar] = []
+            self.bar_count = 0
+            self.session_volume = 0
+            self.emas = None
+
         self.current_bar: Bar | None = None
         self.bar_start_time: datetime | None = None
-
-        # EMA values
-        self.emas: EMAValues | None = None
 
         # State machine
         self.state = StrategyState.WAITING_PULLBACK
@@ -120,10 +122,6 @@ class EMACloudStrategy(BaseStrategy):
         self.last_trade_time: datetime | None = None
         self.entry_price: Decimal | None = None
         self.entry_direction: SignalDirection | None = None
-
-        # Volume tracking
-        self.session_volume = 0
-        self.bar_count = 0
 
         # Logging throttle
         self._last_log_time: datetime | None = None
@@ -228,14 +226,10 @@ class EMACloudStrategy(BaseStrategy):
             return MarketBias.NEUTRAL
 
         # Check price position
-        if close > self.emas.trend_cloud_top:
-            # Verify 34 > 50 for bullish
-            if self.emas.ema_34 > self.emas.ema_50:
-                return MarketBias.BULLISH
-        elif close < self.emas.trend_cloud_bottom:
-            # Verify 34 < 50 for bearish
-            if self.emas.ema_34 < self.emas.ema_50:
-                return MarketBias.BEARISH
+        if close > self.emas.trend_cloud_top and self.emas.ema_34 > self.emas.ema_50:
+            return MarketBias.BULLISH
+        elif close < self.emas.trend_cloud_bottom and self.emas.ema_34 < self.emas.ema_50:
+            return MarketBias.BEARISH
 
         return MarketBias.NEUTRAL
 
@@ -380,9 +374,10 @@ class EMACloudStrategy(BaseStrategy):
         # New session check
         date = tick.timestamp.date()
         if self.session_date != date:
-            self.reset()
+            # Keep history to maintain EMA clouds
+            self.reset(keep_history=True)
             self.session_date = date
-            self.logger.info(f"[EMA_CLOUD] New session: {date}")
+            self.logger.info(f"[EMA_CLOUD] New session: {date} (preserving indicator history)")
 
         cfg = self._get_cfg()
 
@@ -422,18 +417,19 @@ class EMACloudStrategy(BaseStrategy):
         self._log_state(bar)
 
         # === EXIT LOGIC (checked first) ===
-        if self.state == StrategyState.IN_TRADE:
-            if self._is_exit_condition(bar):
-                self.logger.info("=" * 60)
-                self.logger.info("[EMA_CLOUD] EXIT SIGNAL - 5-12 cloud violation!")
-                self.logger.info(f"  Bar close: {bar.close}")
-                self.logger.info(f"  Fast cloud: {self.emas.fast_cloud_bottom:.2f} - {self.emas.fast_cloud_top:.2f}")
-                self.logger.info("=" * 60)
+        if self.state == StrategyState.IN_TRADE and self._is_exit_condition(bar):
+            self.logger.info("=" * 60)
+            self.logger.info("[EMA_CLOUD] EXIT SIGNAL - 5-12 cloud violation!")
+            self.logger.info(f"  Bar close: {bar.close}")
+            self.logger.info(f"  Fast cloud: {self.emas.fast_cloud_bottom:.2f} - {self.emas.fast_cloud_top:.2f}")
+            self.logger.info("=" * 60)
 
-                self.state = StrategyState.WAITING_PULLBACK
-                self.entry_direction = None
-                self.entry_price = None
-                # Note: Exit signal not returned here - position management handled elsewhere
+            self.state = StrategyState.WAITING_PULLBACK
+            self.entry_direction = None
+            self.entry_price = None
+            # Note: Exit signal not returned here - position management handled elsewhere
+            return None
+        elif self.state == StrategyState.IN_TRADE:
             return None
 
         # === FILTER CHECKS ===
@@ -458,15 +454,17 @@ class EMACloudStrategy(BaseStrategy):
             return None
 
         # === PULLBACK DETECTION ===
-        if self.state == StrategyState.WAITING_PULLBACK:
-            if self._is_pullback_into_fast_cloud(bar):
-                if self._did_not_violate_trend_cloud(bar):
-                    self.state = StrategyState.PULLBACK_DETECTED
-                    self.pullback_bar_count = 1
-                    self.logger.info(
-                        f"[EMA_CLOUD] Pullback detected - {self.bias.value} bias | "
-                        f"Bar touched fast cloud"
-                    )
+        if (
+            self.state == StrategyState.WAITING_PULLBACK
+            and self._is_pullback_into_fast_cloud(bar)
+            and self._did_not_violate_trend_cloud(bar)
+        ):
+            self.state = StrategyState.PULLBACK_DETECTED
+            self.pullback_bar_count = 1
+            self.logger.info(
+                f"[EMA_CLOUD] Pullback detected - {self.bias.value} bias | "
+                f"Bar touched fast cloud"
+            )
 
         # === ENTRY LOGIC ===
         elif self.state == StrategyState.PULLBACK_DETECTED:
@@ -479,9 +477,7 @@ class EMACloudStrategy(BaseStrategy):
                 return None
 
             # Check for entry candle
-            if self._is_entry_candle(bar):
-                if not self._can_trade(bar.timestamp):
-                    return None
+            if self._is_entry_candle(bar) and self._can_trade(bar.timestamp):
 
                 direction = (
                     SignalDirection.LONG
@@ -541,3 +537,38 @@ class EMACloudStrategy(BaseStrategy):
             signals.append(signal)
 
         return signals
+
+    def prime_history(self, bars: list[Bar]) -> None:
+        """
+        Prime the strategy with historical bars.
+        Builds EMA history without triggering signals.
+        """
+        if not bars:
+            return
+
+        self.logger.info(f"[EMA_CLOUD] Priming strategy with {len(bars)} historical bars")
+
+        # Sort bars by timestamp just in case
+        sorted_bars = sorted(bars, key=lambda b: b.timestamp)
+
+        for bar in sorted_bars:
+            self.bars.append(bar)
+            if len(self.bars) > 100:
+                self.bars = self.bars[-100:]
+
+            # Update session stats for volume filter
+            self.bar_count += 1
+            self.session_volume += bar.volume
+
+            # Recalculate indicators
+            self._recalculate_emas()
+
+            # Update bias based on last bar
+            if self.emas is not None:
+                self.bias = self._determine_bias(bar.close)
+
+        # Set session date to prevent immediate reset on first tick
+        if self.bars:
+            self.session_date = self.bars[-1].timestamp.date()
+
+        self.logger.info(f"[EMA_CLOUD] Priming complete. Current bias: {self.bias.value}")

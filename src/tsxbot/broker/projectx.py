@@ -76,7 +76,10 @@ class ProjectXBroker(Broker):
         )
 
         # 1. Authenticate to get token (synchronous call, run in executor)
-        token, token_acquired_at = await tsx_authenticate(settings.username, settings.api_key)
+        loop = asyncio.get_running_loop()
+        token, token_acquired_at = await loop.run_in_executor(
+            None, tsx_authenticate, settings.username, settings.api_key
+        )
 
         if not token:
             raise ConnectionError("Failed to authenticate with ProjectX API")
@@ -91,8 +94,8 @@ class ProjectXBroker(Broker):
             reauth_api_key=settings.api_key,
         )
 
-        # 3. Fetch Account ID
-        accounts = await self.client.get_accounts()
+        # 3. Fetch Account ID (synchronous call, run in executor)
+        accounts = await loop.run_in_executor(None, self.client.get_accounts)
         if not accounts:
             raise ValueError("No ProjectX accounts found.")
 
@@ -115,8 +118,11 @@ class ProjectXBroker(Broker):
         self.user_stream.on_order = self._handle_projectx_order_update
         self.user_stream.on_fill = self._handle_projectx_fill
 
-        # 6. Start User Stream
-        await self.user_stream.start()
+        # 6. Start User Stream (may be sync or async - try both)
+        if asyncio.iscoroutinefunction(self.user_stream.start):
+            await self.user_stream.start()
+        else:
+            await loop.run_in_executor(None, self.user_stream.start)
 
         # Data streams are initialized on subscribe()
 
@@ -131,17 +137,32 @@ class ProjectXBroker(Broker):
         # Stop all data streams
         for symbol, stream in self._data_streams.items():
             try:
-                await stream.stop()
+                if asyncio.iscoroutinefunction(stream.stop):
+                    await stream.stop()
+                else:
+                    await loop.run_in_executor(None, stream.stop)
                 logger.info(f"Stopped DataStream for {symbol}")
             except Exception as e:
                 logger.error(f"Error stopping DataStream for {symbol}: {e}")
         self._data_streams.clear()
 
         if self.user_stream:
-            await self.user_stream.stop()
+            try:
+                if asyncio.iscoroutinefunction(self.user_stream.stop):
+                    await self.user_stream.stop()
+                else:
+                    await loop.run_in_executor(None, self.user_stream.stop)
+            except Exception as e:
+                logger.warning(f"Error stopping user stream: {e}")
 
         if self.client and hasattr(self.client, "logout"):
-            await self.client.logout()
+            try:
+                if asyncio.iscoroutinefunction(self.client.logout):
+                    await self.client.logout()
+                else:
+                    await loop.run_in_executor(None, self.client.logout)
+            except Exception as e:
+                logger.warning(f"Error during logout: {e}")
 
     async def subscribe(self, symbol: str) -> None:
         """Subscribe to market data for a symbol."""
@@ -170,8 +191,9 @@ class ProjectXBroker(Broker):
             auto_subscribe_depth=False,
         )
 
-        # Start the stream
-        success = await ds.start()
+        # Start the stream (synchronous call, run in executor)
+        loop = asyncio.get_running_loop()
+        success = await loop.run_in_executor(None, ds.start)
         if success:
             self._data_streams[symbol] = ds
             logger.info(f"Subscribed to {symbol}")

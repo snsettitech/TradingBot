@@ -5,8 +5,7 @@
 # Environment Settings
 # ============================================
 environment:
-  # Enable DRY_RUN to log trade intents without placing orders
-  dry_run: true
+  dry_run: ${DRY_RUN:true}
   
   # Broker Mode: "sim" | "topstep" | "projectx"
   broker_mode: "projectx"

@@ -6,6 +6,7 @@ from tsxbot.config_loader import AppConfig
 from tsxbot.constants import StrategyName
 from tsxbot.strategies.base import BaseStrategy
 from tsxbot.strategies.bos_pullback import BOSPullbackStrategy
+from tsxbot.strategies.ema_cloud import EMACloudStrategy
 from tsxbot.strategies.mean_reversion import MeanReversionStrategy
 from tsxbot.strategies.orb import ORBStrategy
 from tsxbot.strategies.sweep_reclaim import SweepReclaimStrategy
@@ -21,6 +22,7 @@ STRATEGY_MAP: dict[StrategyName, type[BaseStrategy]] = {
     StrategyName.BOS_PULLBACK: BOSPullbackStrategy,
     StrategyName.VWAP_BOUNCE: VWAPBounceStrategy,
     StrategyName.MEAN_REVERSION: MeanReversionStrategy,
+    StrategyName.EMA_CLOUD: EMACloudStrategy,
 }
 
 

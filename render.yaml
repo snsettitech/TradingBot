@@ -19,6 +19,8 @@ services:
         sync: false
       - key: TRADING_ENVIRONMENT
         value: LIVE
+      - key: DRY_RUN
+        value: "false"
       - key: OPENAI_API_KEY
         sync: false
       - key: SUPABASE_URL
@@ -33,5 +35,11 @@ services:
         sync: false
       - key: SMTP_PASSWORD
         sync: false
+      - key: SMTP_FROM
+        sync: false
       - key: ALERT_RECIPIENTS
+        sync: false
+      - key: DATABENTO_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
         sync: false

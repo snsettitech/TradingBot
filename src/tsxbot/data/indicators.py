@@ -168,7 +168,7 @@ def calculate_atr(bars: Sequence[Bar], period: int = 14) -> Decimal:
     if not relevant_trs:
         return Decimal("0")
 
-    return sum(relevant_trs) / len(relevant_trs)
+    return sum(relevant_trs) / Decimal(str(len(relevant_trs)))
 
 
 def calculate_ema(prices: Sequence[Decimal], period: int) -> Decimal:
@@ -192,7 +192,7 @@ def calculate_ema(prices: Sequence[Decimal], period: int) -> Decimal:
     k = Decimal("2") / (Decimal(str(period)) + Decimal("1"))
 
     # Start with SMA for first EMA value
-    sma = sum(prices[:period]) / period
+    sma = sum(prices[:period]) / Decimal(str(period))
     ema = sma
 
     # Calculate EMA for remaining prices
@@ -222,11 +222,11 @@ def calculate_ema_series(bars: Sequence[Bar], period: int) -> list[Decimal]:
     k = Decimal("2") / (Decimal(str(period)) + Decimal("1"))
 
     # First period-1 values are zero (insufficient data)
-    for i in range(period - 1):
+    for _ in range(period - 1):
         result.append(Decimal("0"))
 
     # First EMA is SMA
-    sma = sum(closes[:period]) / period
+    sma = sum(closes[:period]) / Decimal(str(period))
     result.append(sma)
     ema = sma
 
@@ -236,4 +236,56 @@ def calculate_ema_series(bars: Sequence[Bar], period: int) -> list[Decimal]:
         result.append(ema)
 
     return result
+
+
+def aggregate_bars(bars: Sequence[Bar], target_minutes: int) -> list[Bar]:
+    """
+    Aggregate bars into a higher timeframe.
+
+    Args:
+        bars: Sequence of OHLCV bars (usually 1-minute)
+        target_minutes: Target timeframe in minutes
+
+    Returns:
+        List of aggregated bars
+    """
+    if not bars or target_minutes <= 1:
+        return list(bars)
+
+    aggregated: list[Bar] = []
+    current_bar: Bar | None = None
+
+    # Sort by timestamp
+    sorted_bars = sorted(bars, key=lambda b: b.timestamp)
+
+    for bar in sorted_bars:
+        # Determine bar start time
+        minute = bar.timestamp.minute
+        aligned_minute = (minute // target_minutes) * target_minutes
+        bar_start = bar.timestamp.replace(minute=aligned_minute, second=0, microsecond=0)
+
+        if current_bar is None or bar_start != current_bar.timestamp:
+            # Start new aggregated bar
+            if current_bar:
+                aggregated.append(current_bar)
+
+            current_bar = Bar(
+                timestamp=bar_start,
+                open=bar.open,
+                high=bar.high,
+                low=bar.low,
+                close=bar.close,
+                volume=bar.volume
+            )
+        else:
+            # Update existing bar
+            current_bar.high = max(current_bar.high, bar.high)
+            current_bar.low = min(current_bar.low, bar.low)
+            current_bar.close = bar.close
+            current_bar.volume += bar.volume
+
+    if current_bar:
+        aggregated.append(current_bar)
+
+    return aggregated
 

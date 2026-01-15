@@ -43,6 +43,12 @@ class TradeContext:
     entry_price: Decimal | None = None
     quantity: int = 0
 
+    # AI Feedback Loop Context
+    entry_time: datetime | None = None
+    entry_context: MarketContext | None = None
+    signal_reason: str = ""
+    ai_confidence_at_entry: int | None = None
+
 
 class ExecutionEngine:
     """
@@ -70,7 +76,8 @@ class ExecutionEngine:
         self.active_trades: dict[str, TradeContext] = {}  # Map entry_order_id -> Context
         self.order_map: dict[str, str] = {}  # Map bracket_order_id -> entry_order_id
 
-        # Track last AI validation for post-trade analysis
+        # AI Feedback Loop (Online Learning)
+        self.accumulated_lessons: list[str] = []
         self._last_ai_confidence: int | None = None
         self._last_market_context: MarketContext | None = None
 
@@ -176,7 +183,10 @@ class ExecutionEngine:
         if self.ai_advisor and self.ai_advisor.is_available:
             try:
                 context = self._build_market_context(signal)
-                validation = await self.ai_advisor.validate_trade(signal, context)
+                # Pass recent lessons to validation
+                validation = await self.ai_advisor.validate_trade(
+                    signal, context, recent_lessons=self.accumulated_lessons
+                )
                 if validation:
                     self._last_ai_confidence = validation.confidence
                     self._last_market_context = context
@@ -238,6 +248,10 @@ class ExecutionEngine:
                 stop_ticks=signal.stop_ticks,
                 target_ticks=signal.target_ticks,
                 quantity=signal.quantity,
+                entry_time=datetime.now(),
+                entry_context=self._last_market_context,
+                signal_reason=signal.reason,
+                ai_confidence_at_entry=self._last_ai_confidence,
             )
 
             self.active_trades[order.id] = ctx
@@ -353,12 +367,54 @@ class ExecutionEngine:
 
         # Determine if closed?
         # Assuming full fill.
-        # Remove from active trades?
         if fill.qty >= ctx.quantity:
+            # 1. Post-Trade Analysis for Learning Loop
+            if self.ai_advisor and self.ai_advisor.is_available:
+                try:
+                    from tsxbot.ai.models import TradeResult
+                    
+                    # Compute duration
+                    duration = 0
+                    if ctx.entry_time:
+                        duration = int((datetime.now() - ctx.entry_time).total_seconds())
+                    
+                    # Compute P&L
+                    tick_size = self._get_tick_size(ctx.symbol)
+                    pnl_ticks = 0
+                    if ctx.entry_price:
+                        pnl_ticks = int((fill.price - ctx.entry_price) / tick_size)
+                        if ctx.side == OrderSide.SELL:
+                            pnl_ticks = -pnl_ticks
+                    
+                    # Simplified USD calculation (assuming ES for now or using config)
+                    pnl_usd = Decimal(str(pnl_ticks)) * Decimal("12.50") # ES default
+                    
+                    result = TradeResult(
+                        symbol=ctx.symbol,
+                        direction="LONG" if ctx.side == OrderSide.BUY else "SHORT",
+                        entry_price=ctx.entry_price or Decimal("0"),
+                        exit_price=fill.price,
+                        quantity=ctx.quantity,
+                        pnl_ticks=pnl_ticks,
+                        pnl_usd=pnl_usd,
+                        duration_seconds=duration,
+                        exit_reason="stop" if is_stop else "target",
+                        entry_context=ctx.entry_context,
+                        signal_reason=ctx.signal_reason,
+                        ai_confidence_at_entry=ctx.ai_confidence_at_entry,
+                    )
+                    
+                    analysis = await self.ai_advisor.analyze_completed_trade(result)
+                    if analysis and analysis.lessons:
+                        logger.info(f"AI Learned {len(analysis.lessons)} new lessons from trade")
+                        self.accumulated_lessons.extend(analysis.lessons)
+                        # Keep only last 20 lessons
+                        if len(self.accumulated_lessons) > 20:
+                            self.accumulated_lessons = self.accumulated_lessons[-20:]
+                except Exception as e:
+                    logger.warning(f"Post-trade analysis failed: {e}")
+
             self.active_trades.pop(ctx.entry_order_id, None)
-            # Cleanup order_map?
-            # Keeping for history or clean up later.
-            # safe to leave in map if IDs unique.
 
     async def _emergency_flatten(self, ctx: TradeContext) -> None:
         """

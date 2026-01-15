@@ -143,6 +143,11 @@ class TSXBotApp:
         self.strategy = get_strategy(self.config, self.session)
         logger.info(f"Strategy initialized: {self.strategy.__class__.__name__}")
 
+        # 3. Prime Strategy History (if supported)
+        if hasattr(self.strategy, "prime_history"):
+            from tsxbot.data.history_loader import prime_strategy
+            await prime_strategy(self.strategy, self.config)
+
         # Dashboard Setup (for dry-run mode)
         if self.config.environment.dry_run:
             self.dashboard = StrategyDashboard(

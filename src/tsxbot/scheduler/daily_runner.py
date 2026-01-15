@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from tsxbot.config_loader import load_config
+from tsxbot.data.tick_archiver import TickArchiver
 from tsxbot.inference.regime_classifier import RegimeClassifier
 from tsxbot.inference.signal_generator import SignalGenerator
 from tsxbot.inference.strategy_selector import StrategySelector
@@ -30,7 +31,6 @@ from tsxbot.intelligence.level_store import LevelStore
 from tsxbot.scheduler.alert_engine import Alert, AlertEngine
 from tsxbot.scheduler.email_sender import EmailSender
 from tsxbot.time.session_manager import SessionManager
-from tsxbot.data.tick_archiver import TickArchiver
 
 if TYPE_CHECKING:
     from tsxbot.broker.base import BaseBroker
@@ -195,7 +195,7 @@ class DailyRunner:
     async def _run_live_loop(self) -> None:
         """Run with live broker tick data."""
         # Subscribe to tick stream
-        async for tick in self.broker.stream_ticks(self.config.symbols.primary):
+        async for tick in self.broker.stream_ticks(symbol=self.config.symbols.primary):  # type: ignore
             if not self._running:
                 break
 
@@ -311,7 +311,7 @@ class DailyRunner:
                 # AI Validation Gate
                 if self.ai_advisor and self.ai_advisor.is_available:
                     validation = await self._validate_with_ai(signal, snapshot)
-                    
+
                     if validation is None or validation.confidence < AI_CONFIDENCE_THRESHOLD:
                         self._signals_ai_rejected += 1
                         conf_str = f"{validation.confidence:.0%}" if validation else "N/A"
@@ -319,7 +319,7 @@ class DailyRunner:
                             f"Signal rejected by AI: {signal.direction.value} (confidence: {conf_str})"
                         )
                         return
-                    
+
                     self._signals_ai_validated += 1
                     logger.info(f"Signal validated by AI: {validation.confidence:.0%}")
 
@@ -365,7 +365,7 @@ class DailyRunner:
         ai_status = "N/A"
         if self.ai_advisor:
             ai_status = f"Validated: {self._signals_ai_validated}, Rejected: {self._signals_ai_rejected}"
-        
+
         return f"""
 Session Summary:
 - Ticks processed: {self._tick_count}
@@ -377,7 +377,7 @@ Session Summary:
     def _setup_signal_handlers(self) -> None:
         """Setup graceful shutdown handlers."""
 
-        def shutdown(signum, frame):
+        def shutdown(_signum, _frame):
             logger.info("Shutdown signal received")
             self._running = False
 
@@ -397,8 +397,37 @@ async def main():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
-    runner = DailyRunner()
-    await runner.run()
+    import os
+
+    from tsxbot.broker.projectx import ProjectXBroker
+    from tsxbot.config_loader import load_config
+
+    cfg = load_config("config/config.yaml")
+    broker = None
+
+    # Check for credentials
+    api_key = os.getenv("PROJECTX_API_KEY")
+    username = os.getenv("PROJECTX_USERNAME")
+
+    if cfg.environment.dry_run:
+        logger.info("Bot is in DRY_RUN mode (from config or DRY_RUN=true). Simulation mode enabled.")
+    elif not api_key or not username:
+        logger.warning("ProjectX credentials (PROJECTX_API_KEY/USERNAME) missing. Simulation mode enabled.")
+    else:
+        logger.info(f"Initializing ProjectXBroker for DailyRunner live loop (User: {username})")
+        try:
+            broker = ProjectXBroker(cfg)
+            await broker.connect()  # type: ignore
+        except Exception as e:
+            logger.error(f"Failed to connect live broker: {e}. Falling back to simulation.")
+            broker = None
+
+    runner = DailyRunner(config=cfg, broker=broker)
+    try:
+        await runner.run()
+    finally:
+        if broker:
+            await broker.disconnect()
 
 
 if __name__ == "__main__":

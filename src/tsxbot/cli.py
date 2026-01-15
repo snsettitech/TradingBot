@@ -75,7 +75,8 @@ def smoke_test(config):
 @click.option("--feedback", is_flag=True, help="Enable AI feedback loop (pre/post trade learning)")
 @click.option("--threshold", default=0.6, help="AI confidence threshold for feedback mode (0-1)")
 @click.option("--report", is_flag=True, help="Generate HTML report with charts")
-def backtest(config, strategy, data, days, projectx, ai, feedback, threshold, report):
+@click.option("--databento", is_flag=True, help="Fetch high-fidelity data from Databento")
+def backtest(config, strategy, data, days, projectx, ai, feedback, threshold, report, databento):
     """Run strategy backtest with historical data."""
     from tsxbot.backtest.data_loader import HistoricalDataLoader
     from tsxbot.backtest.engine import BacktestEngine
@@ -109,6 +110,8 @@ def backtest(config, strategy, data, days, projectx, ai, feedback, threshold, re
     elif projectx:
         click.echo(f"Fetching {days} days of real data from ProjectX API...")
         bars = loader.load_from_projectx(
+            api_key=cfg.projectx.api_key,
+            username=cfg.projectx.username,
             contract_id=cfg.projectx.contract_id
             if hasattr(cfg.projectx, "contract_id")
             else "CON.F.US.EP.H26",
@@ -116,6 +119,12 @@ def backtest(config, strategy, data, days, projectx, ai, feedback, threshold, re
         )
         if not bars:
             click.echo("Failed to load data from ProjectX. Falling back to sample data.")
+            bars = loader.generate_sample_data(start=datetime(2024, 1, 2, 9, 30), days=days)
+    elif databento:
+        click.echo(f"Fetching {days} days of high-fidelity data from Databento...")
+        bars = loader.load_from_databento(days=days, symbol=cfg.symbols.primary)
+        if not bars:
+            click.echo("Failed to load data from Databento. Falling back to sample data.")
             bars = loader.generate_sample_data(start=datetime(2024, 1, 2, 9, 30), days=days)
     else:
         click.echo(f"Generating {days} days of sample data...")

@@ -74,8 +74,9 @@ class AIRecommender:
         """Lazy-load OpenAI client."""
         if self._client is None:
             try:
-                from openai import OpenAI
                 import os
+
+                from openai import OpenAI
 
                 api_key = os.getenv("OPENAI_API_KEY")
                 if not api_key:
@@ -165,9 +166,7 @@ Output valid JSON:
             logger.error(f"AI analysis failed: {e}")
             return self._fallback_analysis(results)
 
-    def _format_results(
-        self, results: list[StrategyParams], playbook_filter: str | None
-    ) -> str:
+    def _format_results(self, results: list[StrategyParams], playbook_filter: str | None) -> str:
         """Format results for AI prompt."""
         lines = []
         for r in results:
@@ -180,7 +179,9 @@ Output valid JSON:
             lines.append(f"- Avg Win: {r.avg_win_ticks:.1f} ticks")
             lines.append(f"- Avg Loss: {r.avg_loss_ticks:.1f} ticks")
             lines.append(f"- Sample Size: {r.sample_size} trades")
-            lines.append(f"- Stop: {r.stop_loss_ticks} ticks, Target: {r.profit_target_ticks} ticks")
+            lines.append(
+                f"- Stop: {r.stop_loss_ticks} ticks, Target: {r.profit_target_ticks} ticks"
+            )
             lines.append("")
 
         return "\n".join(lines) if lines else "No results available"
@@ -264,14 +265,14 @@ Output valid JSON:
     def generate_report(self, analysis: AIAnalysis) -> str:
         """Generate markdown report from analysis."""
         lines = [
-            f"# AI Backtest Analysis Report",
-            f"",
+            "# AI Backtest Analysis Report",
+            "",
             f"**Overall Grade**: {analysis.overall_grade}",
-            f"",
-            f"## Summary",
+            "",
+            "## Summary",
             analysis.summary,
-            f"",
-            f"## Strengths",
+            "",
+            "## Strengths",
         ]
 
         for s in analysis.strengths:
@@ -286,8 +287,12 @@ Output valid JSON:
         lines.append("## Recommendations")
         for rec in analysis.recommendations:
             lines.append(f"### {rec.playbook} - {rec.regime}")
-            lines.append(f"- **Current**: Stop={rec.current_params['stop_ticks']}, Target={rec.current_params['target_ticks']}")
-            lines.append(f"- **Recommended**: Stop={rec.recommended_params['stop_ticks']}, Target={rec.recommended_params['target_ticks']}")
+            lines.append(
+                f"- **Current**: Stop={rec.current_params['stop_ticks']}, Target={rec.current_params['target_ticks']}"
+            )
+            lines.append(
+                f"- **Recommended**: Stop={rec.recommended_params['stop_ticks']}, Target={rec.recommended_params['target_ticks']}"
+            )
             lines.append(f"- **Confidence**: {rec.confidence:.0%}")
             lines.append(f"- **Reasoning**: {rec.reasoning}")
             lines.append("")

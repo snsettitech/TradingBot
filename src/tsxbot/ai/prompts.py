@@ -62,7 +62,7 @@ def build_pre_trade_prompt(
     signal_info: str, market_context: str, recent_lessons: list[str] | None = None
 ) -> str:
     """Build the user prompt for pre-trade validation.
-    
+
     Args:
         signal_info: Signal details string.
         market_context: Market context string.

@@ -275,7 +275,7 @@ def aggregate_bars(bars: Sequence[Bar], target_minutes: int) -> list[Bar]:
                 high=bar.high,
                 low=bar.low,
                 close=bar.close,
-                volume=bar.volume
+                volume=bar.volume,
             )
         else:
             # Update existing bar
@@ -289,3 +289,47 @@ def aggregate_bars(bars: Sequence[Bar], target_minutes: int) -> list[Bar]:
 
     return aggregated
 
+
+def find_swings(bars: Sequence[Bar], window_size: int = 2) -> list[dict]:
+    """
+    Identify Swing Highs and Swing Lows in a sequence of bars.
+
+    A Swing High is confirmed at index i if bars[i].high is the highest
+    over [i-window_size, i+window_size].
+
+    Args:
+        bars: Sequence of OHLCV bars
+        window_size: Number of bars to check on each side
+
+    Returns:
+        List of dicts: {'type': 'high'|'low', 'index': int, 'price': Decimal, 'timestamp': datetime}
+    """
+    results = []
+    if len(bars) < 2 * window_size + 1:
+        return results
+
+    for i in range(window_size, len(bars) - window_size):
+        current_high = bars[i].high
+        current_low = bars[i].low
+
+        is_high = True
+        is_low = True
+
+        for j in range(i - window_size, i + window_size + 1):
+            if i == j:
+                continue
+            if bars[j].high >= current_high:
+                is_high = False
+            if bars[j].low <= current_low:
+                is_low = False
+
+        if is_high:
+            results.append(
+                {"type": "high", "index": i, "price": current_high, "timestamp": bars[i].timestamp}
+            )
+        if is_low:
+            results.append(
+                {"type": "low", "index": i, "price": current_low, "timestamp": bars[i].timestamp}
+            )
+
+    return results

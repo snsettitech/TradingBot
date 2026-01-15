@@ -19,6 +19,7 @@ from tsxbot.data.indicators import aggregate_bars
 
 logger = logging.getLogger(__name__)
 
+
 class HistoryLoader:
     """
     Manages historical data loading and caching.
@@ -90,6 +91,7 @@ class HistoryLoader:
             return bars
 
         return [b for b in bars if b.timestamp >= start_time]
+
 
 async def prime_strategy(strategy: any, config: AppConfig) -> None:
     """Helper to bootstrap a strategy with history."""

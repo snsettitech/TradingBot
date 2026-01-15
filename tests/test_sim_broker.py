@@ -7,7 +7,7 @@ import pytest
 
 from tsxbot.broker.models import OrderRequest
 from tsxbot.broker.sim import SimBroker
-from tsxbot.config_loader import ExecutionConfig, SymbolsConfig, SymbolSpecConfig, CommissionConfig
+from tsxbot.config_loader import CommissionConfig, ExecutionConfig, SymbolsConfig, SymbolSpecConfig
 from tsxbot.constants import OrderSide, OrderStatus, OrderType
 from tsxbot.data.market_data import Tick
 
@@ -27,12 +27,11 @@ def broker(symbols_config):
     # Zero slippage and zero commission for predictable test results
     exec_config = ExecutionConfig(
         slippage_ticks=0,
-        commissions=CommissionConfig(
-            es_round_turn=Decimal("0.00"),
-            mes_round_turn=Decimal("0.00")
-        )
+        commissions=CommissionConfig(es_round_turn=Decimal("0.00"), mes_round_turn=Decimal("0.00")),
     )
-    return SimBroker(symbols_config, initial_balance=Decimal("100000.00"), execution_config=exec_config)
+    return SimBroker(
+        symbols_config, initial_balance=Decimal("100000.00"), execution_config=exec_config
+    )
 
 
 @pytest.mark.asyncio
@@ -50,6 +49,7 @@ async def test_market_order_instant_fill(broker):
     req = OrderRequest("ES", OrderSide.BUY, 1, OrderType.MARKET)
     order = await broker.place_order(req)
     import asyncio
+
     await asyncio.sleep(0.01)
 
     assert order.status == OrderStatus.FILLED
@@ -101,6 +101,7 @@ async def test_pnl_calculation_long_profit(broker):
     await broker.process_tick(Tick("ES", datetime.now(), Decimal("5000.00"), 1))
     await broker.place_order(OrderRequest("ES", OrderSide.BUY, 1, OrderType.MARKET))
     import asyncio
+
     await asyncio.sleep(0.01)
 
     # Val: 1 * 5000. Cost = 5000.
@@ -110,6 +111,7 @@ async def test_pnl_calculation_long_profit(broker):
     await broker.process_tick(Tick("ES", datetime.now(), Decimal("5010.00"), 1))
     await broker.place_order(OrderRequest("ES", OrderSide.SELL, 1, OrderType.MARKET))
     import asyncio
+
     await asyncio.sleep(0.01)
 
     pos = await broker.get_position("ES")
@@ -126,6 +128,7 @@ async def test_pnl_calculation_short_loss(broker):
     await broker.process_tick(Tick("ES", datetime.now(), Decimal("5000.00"), 1))
     await broker.place_order(OrderRequest("ES", OrderSide.SELL, 1, OrderType.MARKET))
     import asyncio
+
     await asyncio.sleep(0.01)
 
     # 2. Buy 1 @ 5010 (-10 pts)
@@ -133,6 +136,7 @@ async def test_pnl_calculation_short_loss(broker):
     await broker.process_tick(Tick("ES", datetime.now(), Decimal("5010.00"), 1))
     await broker.place_order(OrderRequest("ES", OrderSide.BUY, 1, OrderType.MARKET))
     import asyncio
+
     await asyncio.sleep(0.01)
 
     pos = await broker.get_position("ES")
@@ -149,6 +153,7 @@ async def test_position_flip(broker):
     await broker.process_tick(Tick("ES", datetime.now(), Decimal("5000.00"), 1))
     await broker.place_order(OrderRequest("ES", OrderSide.BUY, 1, OrderType.MARKET))
     import asyncio
+
     await asyncio.sleep(0.01)
 
     # 2. Sell 2 @ 5010 (Flip to Short 1)
@@ -157,6 +162,7 @@ async def test_position_flip(broker):
     await broker.process_tick(Tick("ES", datetime.now(), Decimal("5010.00"), 1))
     await broker.place_order(OrderRequest("ES", OrderSide.SELL, 2, OrderType.MARKET))
     import asyncio
+
     await asyncio.sleep(0.01)
 
     pos = await broker.get_position("ES")
@@ -170,6 +176,7 @@ async def test_position_flip(broker):
     await broker.process_tick(Tick("ES", datetime.now(), Decimal("5005.00"), 1))
     await broker.place_order(OrderRequest("ES", OrderSide.BUY, 1, OrderType.MARKET))
     import asyncio
+
     await asyncio.sleep(0.01)
 
     pos = await broker.get_position("ES")

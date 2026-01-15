@@ -44,10 +44,7 @@ def broker(symbols_config):
     # Zero slippage and zero commission for predictable test results
     exec_config = ExecutionConfig(
         slippage_ticks=0,
-        commissions=CommissionConfig(
-            es_round_turn=Decimal("0.00"),
-            mes_round_turn=Decimal("0.00")
-        )
+        commissions=CommissionConfig(es_round_turn=Decimal("0.00"), mes_round_turn=Decimal("0.00")),
     )
     return SimBroker(symbols_config, execution_config=exec_config)
 

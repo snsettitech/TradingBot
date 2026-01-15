@@ -44,3 +44,135 @@ orbstrategy:
     backtest_source: backtest
     confidence: 1.0
     ai_recommendation: ''
+vwapbouncestrategy:
+  normal:
+    strategy: VWAPBounceStrategy
+    regime: normal
+    opening_range_minutes: 35
+    profit_target_ticks: 12
+    stop_loss_ticks: 6
+    win_rate: 0.3333333333333333
+    profit_factor: 1.0
+    avg_win_ticks: 12.0
+    avg_loss_ticks: -6.0
+    sample_size: 6
+    last_updated: '2026-01-15T12:12:07.863266'
+    backtest_source: backtest
+    confidence: 0.3
+    ai_recommendation: ''
+  choppy:
+    strategy: VWAPBounceStrategy
+    regime: choppy
+    opening_range_minutes: 35
+    profit_target_ticks: 12
+    stop_loss_ticks: 6
+    win_rate: 0.0
+    profit_factor: 0.0
+    avg_win_ticks: 0.0
+    avg_loss_ticks: -6.0
+    sample_size: 2
+    last_updated: '2026-01-15T12:12:07.876040'
+    backtest_source: backtest
+    confidence: 0.1
+    ai_recommendation: ''
+  high_volatility:
+    strategy: VWAPBounceStrategy
+    regime: high_volatility
+    opening_range_minutes: 35
+    profit_target_ticks: 12
+    stop_loss_ticks: 6
+    win_rate: 0.0
+    profit_factor: 0.0
+    avg_win_ticks: 0.0
+    avg_loss_ticks: -6.0
+    sample_size: 6
+    last_updated: '2026-01-15T12:44:03.557870'
+    backtest_source: backtest
+    confidence: 0.3
+    ai_recommendation: ''
+meanreversionstrategy:
+  choppy:
+    strategy: MeanReversionStrategy
+    regime: choppy
+    opening_range_minutes: 35
+    profit_target_ticks: 8
+    stop_loss_ticks: 8
+    win_rate: 0.3670886075949367
+    profit_factor: 0.58
+    avg_win_ticks: 8.0
+    avg_loss_ticks: -8.0
+    sample_size: 79
+    last_updated: '2026-01-15T11:57:37.065677'
+    backtest_source: backtest
+    confidence: 1.0
+    ai_recommendation: Widen the stop loss to improve the win rate. (In a choppy market
+      regime, the current stop loss is likely too tight, leading to frequent stop-outs
+      and a low win rate. By widening the stop, the strategy may capture more winning
+      trades.)
+  trending:
+    strategy: MeanReversionStrategy
+    regime: trending
+    opening_range_minutes: 35
+    profit_target_ticks: 8
+    stop_loss_ticks: 8
+    win_rate: 0.38235294117647056
+    profit_factor: 0.6190476190476191
+    avg_win_ticks: 8.0
+    avg_loss_ticks: -8.0
+    sample_size: 34
+    last_updated: '2026-01-15T12:44:24.167254'
+    backtest_source: backtest
+    confidence: 1.0
+    ai_recommendation: Increase the profit target to improve the profit factor. (The
+      current low win rate and profit factor indicate that while the average win matches
+      the average loss, the strategy is not generating enough profitable trades to
+      be effective; increasing the target can help improve the profit factor.)
+  normal:
+    strategy: MeanReversionStrategy
+    regime: normal
+    opening_range_minutes: 35
+    profit_target_ticks: 8
+    stop_loss_ticks: 8
+    win_rate: 0.3793103448275862
+    profit_factor: 0.6111111111111112
+    avg_win_ticks: 8.0
+    avg_loss_ticks: -8.0
+    sample_size: 58
+    last_updated: '2026-01-15T11:57:41.681658'
+    backtest_source: backtest
+    confidence: 1.0
+    ai_recommendation: Widen the stop loss to improve the win rate. (The current win
+      rate is low, indicating that the strategy may be too strict with its stop loss,
+      leading to frequent losses. Widening the stop could allow more trades to remain
+      open longer and potentially turn into winners.)
+emacloudstrategy:
+  trending:
+    strategy: EMACloudStrategy
+    regime: trending
+    opening_range_minutes: 30
+    profit_target_ticks: 0
+    stop_loss_ticks: 0
+    win_rate: 1.0
+    profit_factor: 64725.0
+    avg_win_ticks: 1726.0
+    avg_loss_ticks: 0.0
+    sample_size: 3
+    last_updated: '2026-01-15T13:32:23.425939'
+    backtest_source: backtest
+    confidence: 0.15
+    ai_recommendation: ''
+  high_volatility:
+    strategy: EMACloudStrategy
+    regime: high_volatility
+    opening_range_minutes: 30
+    profit_target_ticks: 0
+    stop_loss_ticks: 0
+    win_rate: 1.0
+    profit_factor: 16337.5
+    avg_win_ticks: 1307.0
+    avg_loss_ticks: 0.0
+    sample_size: 1
+    last_updated: '2026-01-15T13:32:23.437941'
+    backtest_source: backtest
+    confidence: 0.05
+    ai_recommendation: ''

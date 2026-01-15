@@ -33,7 +33,8 @@ logger = logging.getLogger(__name__)
 # ANSI color code for cyan console output
 CYAN = "\033[96m"
 RESET = "\033[0m"
-BRAIN_EMOJI = "🧠"
+# Removed BRAIN_EMOJI for Windows console compatibility
+BRAIN_EMOJI = ""
 
 
 class AIAdvisor:

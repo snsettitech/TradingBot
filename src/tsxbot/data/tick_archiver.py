@@ -10,7 +10,7 @@ import csv
 import logging
 import os
 from dataclasses import dataclass
-from datetime import datetime, date
+from datetime import date, datetime
 from decimal import Decimal
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -116,12 +116,14 @@ class TickArchiver:
 
         # Write immediately to CSV
         writer = self._get_csv_writer(tick.timestamp.date())
-        writer.writerow([
-            tick.timestamp.isoformat(),
-            tick.symbol,
-            str(tick.price),
-            tick.volume,
-        ])
+        writer.writerow(
+            [
+                tick.timestamp.isoformat(),
+                tick.symbol,
+                str(tick.price),
+                tick.volume,
+            ]
+        )
 
         # Buffer for Supabase batch insert
         if self.enable_supabase:

@@ -30,6 +30,7 @@ class AlertType(Enum):
     LARGE_MOVE = "large_move"
     SESSION_START = "session_start"
     SESSION_END = "session_end"
+    MARKET_UPDATE = "market_update"
     ERROR = "error"
 
 
@@ -54,6 +55,7 @@ class AlertConfig:
     """Configuration for alert thresholds."""
 
     # Large move detection
+    send_large_moves: bool = False
     large_move_threshold_pct: float = 1.0  # 1% move
     large_move_window_minutes: int = 5
 
@@ -63,6 +65,7 @@ class AlertConfig:
     # Session alerts
     send_session_start: bool = True
     send_session_end: bool = True
+    send_hourly_updates: bool = True
 
 
 class AlertEngine:
@@ -114,7 +117,7 @@ class AlertEngine:
         self._price_history = [(t, p) for t, p in self._price_history if t >= cutoff]
 
         # Check for large move
-        if len(self._price_history) >= 2:
+        if self.config.send_large_moves and len(self._price_history) >= 2:
             oldest_price = self._price_history[0][1]
             if oldest_price > 0:
                 move_pct = abs(float((price - oldest_price) / oldest_price) * 100)
@@ -194,6 +197,22 @@ class AlertEngine:
             alert_type=AlertType.SESSION_END,
             title="RTH Session Ended",
             message=f"Trading session ended at {timestamp.strftime('%H:%M ET')}.\n\n{summary}",
+            priority=1,
+        )
+
+        self._send_alert(alert)
+        return alert
+
+    def on_market_update(self, timestamp: datetime, stats: str) -> Alert | None:
+        """Send hourly market update."""
+        if not self.config.send_hourly_updates:
+            return None
+
+        alert = Alert(
+            timestamp=timestamp,
+            alert_type=AlertType.MARKET_UPDATE,
+            title="Hourly Market Update",
+            message=f"Market Update at {timestamp.strftime('%H:%M ET')}:\n\n{stats}",
             priority=1,
         )
 

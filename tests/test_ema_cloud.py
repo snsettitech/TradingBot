@@ -22,7 +22,6 @@ from tsxbot.strategies.ema_cloud import (
     StrategyState,
 )
 
-
 # ============================================
 # EMA Calculation Tests
 # ============================================
@@ -47,8 +46,12 @@ class TestEMACalculation:
     def test_calculate_ema_with_more_data(self):
         """EMA calculation with more than period prices."""
         prices = [
-            Decimal("100"), Decimal("102"), Decimal("104"),
-            Decimal("106"), Decimal("108"), Decimal("110"),
+            Decimal("100"),
+            Decimal("102"),
+            Decimal("104"),
+            Decimal("106"),
+            Decimal("108"),
+            Decimal("110"),
         ]
         result = calculate_ema(prices, period=5)
         # First EMA = SMA of first 5 = 104
@@ -68,7 +71,14 @@ class TestEMACalculation:
     def test_calculate_ema_series_early_zeros(self):
         """EMA series has zeros for insufficient data."""
         bars = [
-            Bar(datetime.now(), Decimal("100"), Decimal("101"), Decimal("99"), Decimal(str(100 + i)), 100)
+            Bar(
+                datetime.now(),
+                Decimal("100"),
+                Decimal("101"),
+                Decimal("99"),
+                Decimal(str(100 + i)),
+                100,
+            )
             for i in range(10)
         ]
         result = calculate_ema_series(bars, period=5)
@@ -124,11 +134,11 @@ class TestEMAValues:
 def mock_config():
     """Create mock config for tests."""
     config = MagicMock()
-    
+
     # Set up strategy config
     config.strategy = MagicMock()
     config.strategy.ema_cloud = EMACloudStrategyConfig()
-    
+
     # Set up symbols config
     config.symbols = SymbolsConfig(
         primary="ES",
@@ -335,6 +345,7 @@ class TestExitLogic:
         strategy.entry_direction.value = "long"
 
         from tsxbot.constants import SignalDirection
+
         strategy.entry_direction = SignalDirection.LONG
 
         # Bar closes below fast cloud bottom (5008)
@@ -361,6 +372,7 @@ class TestExitLogic:
         )
 
         from tsxbot.constants import SignalDirection
+
         strategy.entry_direction = SignalDirection.LONG
 
         # Bar closes above fast cloud

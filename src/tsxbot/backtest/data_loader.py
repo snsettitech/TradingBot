@@ -47,7 +47,12 @@ class HistoricalDataLoader:
         self.bars: list[Bar] = []
 
     def load_from_projectx(
-        self, contract_id: str = "CON.F.US.EP.H26", days: int = 30, timeframe: str = "Minute1"
+        self,
+        api_key: str,
+        username: str,
+        contract_id: str = "CON.F.US.EP.H26",
+        days: int = 30,
+        timeframe: str = "Minute1",
     ) -> list[Bar]:
         """
         Load historical bars from ProjectX API.
@@ -69,15 +74,43 @@ class HistoricalDataLoader:
             return []
 
         try:
-            client = APIClient()
+            from tsxapipy.auth import authenticate as tsx_authenticate
+
+            token, token_acquired_at = tsx_authenticate(username, api_key)
+            if not token:
+                logger.error("Failed to authenticate with ProjectX API")
+                return []
+
+            client = APIClient(
+                initial_token=token,
+                token_acquired_at=token_acquired_at,
+                reauth_username=username,
+                reauth_api_key=api_key,
+            )
+
+            from tsxapipy.api.contract_utils import get_futures_contract_details
+
+            # Resolve contract ID if it's a root symbol like "ES" or "MES"
+            resolved_id = contract_id
+            if contract_id in ["ES", "MES", "NQ", "MNQ"]:
+                details = get_futures_contract_details(client, datetime.now().date(), contract_id)
+                if details:
+                    resolved_id = details[0]  # String ID
+                    logger.info(f"Resolved {contract_id} to {resolved_id}")
 
             end = datetime.now()
             start = end - timedelta(days=days)
 
-            logger.info(f"Fetching historical bars from ProjectX: {contract_id}, {days} days")
+            logger.info(f"Fetching historical bars from ProjectX: {resolved_id}, {days} days")
 
+            # API codes: 2 for Minute, unit_number 1 for 1-minute
             response = client.get_historical_bars(
-                contract_id=contract_id, start_time=start, end_time=end, unit=timeframe
+                contract_id=resolved_id,
+                start_time_iso=start.isoformat(),
+                end_time_iso=end.isoformat(),
+                unit=2,
+                unit_number=1,
+                limit=1000,
             )
 
             if not response or not response.bars:
@@ -88,7 +121,7 @@ class HistoricalDataLoader:
             for api_bar in response.bars:
                 try:
                     bar = Bar(
-                        timestamp=datetime.fromisoformat(api_bar.t.replace("Z", "+00:00")),
+                        timestamp=api_bar.t,
                         open=Decimal(str(api_bar.o)),
                         high=Decimal(str(api_bar.h)),
                         low=Decimal(str(api_bar.l)),
@@ -109,6 +142,47 @@ class HistoricalDataLoader:
 
         except Exception as e:
             logger.error(f"Failed to fetch from ProjectX: {e}")
+            return []
+
+    def load_from_databento(
+        self,
+        days: int = 30,
+        symbol: str = "ES",
+    ) -> list[Bar]:
+        """Load historical bars from Databento."""
+        try:
+            import asyncio
+
+            from tsxbot.data.databento_fetcher import DatabentoFetcher
+
+            fetcher = DatabentoFetcher()
+            if not fetcher.is_available():
+                logger.error("Databento API key not found in .env")
+                return []
+
+            # Run async fetch in sync context
+            result = asyncio.run(fetcher.fetch(symbol=symbol, days=days))
+
+            bars = []
+            for d_bar in result.bars:
+                bars.append(
+                    Bar(
+                        timestamp=d_bar.timestamp,
+                        open=d_bar.open,
+                        high=d_bar.high,
+                        low=d_bar.low,
+                        close=d_bar.close,
+                        volume=d_bar.volume,
+                        symbol=symbol,
+                    )
+                )
+
+            self.bars = bars
+            logger.info(f"Loaded {len(bars)} bars from Databento")
+            return bars
+
+        except Exception as e:
+            logger.error(f"Failed to fetch from Databento: {e}")
             return []
 
     def load_csv(self, path: str, date_format: str = "%Y-%m-%d %H:%M:%S") -> list[Bar]:

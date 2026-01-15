@@ -1,7 +1,6 @@
 """Placeholder tests for executor brackets."""
 
 
-
 class TestExecutorBrackets:
     """Tests for bracket order execution - to be implemented."""
 

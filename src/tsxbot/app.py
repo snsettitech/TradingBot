@@ -146,6 +146,7 @@ class TSXBotApp:
         # 3. Prime Strategy History (if supported)
         if hasattr(self.strategy, "prime_history"):
             from tsxbot.data.history_loader import prime_strategy
+
             await prime_strategy(self.strategy, self.config)
 
         # Dashboard Setup (for dry-run mode)

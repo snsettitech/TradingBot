@@ -113,6 +113,7 @@ class DailyRunner:
         self._signals_ai_validated = 0
         self._signals_ai_rejected = 0
         self._bar_data: list[tuple[datetime, Decimal]] = []
+        self._last_update_time = None
 
     def _init_ai_advisor(self) -> None:
         """Initialize AI advisor if OpenAI is configured."""
@@ -273,6 +274,33 @@ class DailyRunner:
                 f"Regime: {regime_analysis.regime.value} ({regime_analysis.confidence:.0%})"
             )
 
+        # Check for hourly market update
+        await self._check_market_update(timestamp, close_price, regime_analysis)
+
+    async def _check_market_update(
+        self, timestamp: datetime, price: Decimal, regime_analysis
+    ) -> None:
+        """Check if it's time for an hourly market update."""
+        if self._last_update_time is None:
+            self._last_update_time = timestamp
+            return
+
+        # Check if 60 minutes have passed
+        if (timestamp - self._last_update_time).total_seconds() >= 3600:
+            self._last_update_time = timestamp
+
+            # Generate temporary stats
+            stats = f"""
+Current Price: {price}
+Regime: {regime_analysis.regime.value}
+Trend: {regime_analysis.trend_direction}
+Signals Generated: {self._signals_generated}
+AI Validated: {self._signals_ai_validated}
+Ticks Processed: {self._tick_count}
+            """.strip()
+
+            self.alert_engine.on_market_update(timestamp, stats)
+
     async def _process_interaction(
         self,
         interaction,
@@ -342,7 +370,9 @@ class DailyRunner:
                 regime=snapshot.regime.value if snapshot.regime else "unknown",
                 trend=snapshot.trend_direction if snapshot.trend_direction else "unknown",
                 time_of_day=snapshot.time_of_day if snapshot.time_of_day else "unknown",
-                vwap_distance=float(snapshot.distance_from_vwap_pct) if snapshot.distance_from_vwap_pct else 0,
+                vwap_distance=float(snapshot.distance_from_vwap_pct)
+                if snapshot.distance_from_vwap_pct
+                else 0,
             )
 
             return await self.ai_advisor.validate_trade(signal, context)
@@ -364,7 +394,9 @@ class DailyRunner:
         """Generate end-of-session summary with AI stats."""
         ai_status = "N/A"
         if self.ai_advisor:
-            ai_status = f"Validated: {self._signals_ai_validated}, Rejected: {self._signals_ai_rejected}"
+            ai_status = (
+                f"Validated: {self._signals_ai_validated}, Rejected: {self._signals_ai_rejected}"
+            )
 
         return f"""
 Session Summary:
@@ -410,9 +442,13 @@ async def main():
     username = os.getenv("PROJECTX_USERNAME")
 
     if cfg.environment.dry_run:
-        logger.info("Bot is in DRY_RUN mode (from config or DRY_RUN=true). Simulation mode enabled.")
+        logger.info(
+            "Bot is in DRY_RUN mode (from config or DRY_RUN=true). Simulation mode enabled."
+        )
     elif not api_key or not username:
-        logger.warning("ProjectX credentials (PROJECTX_API_KEY/USERNAME) missing. Simulation mode enabled.")
+        logger.warning(
+            "ProjectX credentials (PROJECTX_API_KEY/USERNAME) missing. Simulation mode enabled."
+        )
     else:
         logger.info(f"Initializing ProjectXBroker for DailyRunner live loop (User: {username})")
         try:

@@ -372,12 +372,12 @@ class ExecutionEngine:
             if self.ai_advisor and self.ai_advisor.is_available:
                 try:
                     from tsxbot.ai.models import TradeResult
-                    
+
                     # Compute duration
                     duration = 0
                     if ctx.entry_time:
                         duration = int((datetime.now() - ctx.entry_time).total_seconds())
-                    
+
                     # Compute P&L
                     tick_size = self._get_tick_size(ctx.symbol)
                     pnl_ticks = 0
@@ -385,10 +385,10 @@ class ExecutionEngine:
                         pnl_ticks = int((fill.price - ctx.entry_price) / tick_size)
                         if ctx.side == OrderSide.SELL:
                             pnl_ticks = -pnl_ticks
-                    
+
                     # Simplified USD calculation (assuming ES for now or using config)
-                    pnl_usd = Decimal(str(pnl_ticks)) * Decimal("12.50") # ES default
-                    
+                    pnl_usd = Decimal(str(pnl_ticks)) * Decimal("12.50")  # ES default
+
                     result = TradeResult(
                         symbol=ctx.symbol,
                         direction="LONG" if ctx.side == OrderSide.BUY else "SHORT",
@@ -403,7 +403,7 @@ class ExecutionEngine:
                         signal_reason=ctx.signal_reason,
                         ai_confidence_at_entry=ctx.ai_confidence_at_entry,
                     )
-                    
+
                     analysis = await self.ai_advisor.analyze_completed_trade(result)
                     if analysis and analysis.lessons:
                         logger.info(f"AI Learned {len(analysis.lessons)} new lessons from trade")

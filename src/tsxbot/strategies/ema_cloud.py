@@ -146,9 +146,7 @@ class EMACloudStrategy(BaseStrategy):
         # Align bar start to bar_minutes boundary
         minute = tick.timestamp.minute
         aligned_minute = (minute // cfg.bar_minutes) * cfg.bar_minutes
-        self.bar_start_time = tick.timestamp.replace(
-            minute=aligned_minute, second=0, microsecond=0
-        )
+        self.bar_start_time = tick.timestamp.replace(minute=aligned_minute, second=0, microsecond=0)
 
         self.current_bar = Bar(
             timestamp=self.bar_start_time,
@@ -402,12 +400,44 @@ class EMACloudStrategy(BaseStrategy):
 
         return signals
 
+    def _complete_bar(self) -> None:
+        """Finalize current bar and add to history."""
+        if self.current_bar is None:
+            return
+
+        self.bars.append(self.current_bar)
+        if len(self.bars) > 100:
+            self.bars = self.bars[-100:]
+
+        # self.logger.info(f"Debug: Completed bar #{len(self.bars)} at {self.current_bar.timestamp}")
+
+        # Update session stats for volume filter
+        self.bar_count += 1
+        self.session_volume += self.current_bar.volume
+
+        # Recalculate indicators
+        self._recalculate_emas()
+
+        self.current_bar = None
+        self.bar_start_time = None
+
+    def _update_current_bar(self, tick: Tick) -> None:
+        """Update current bar with new tick."""
+        if self.current_bar is None:
+            return
+
+        self.current_bar.high = max(self.current_bar.high, tick.price)
+        self.current_bar.low = min(self.current_bar.low, tick.price)
+        self.current_bar.close = tick.price
+        self.current_bar.volume += tick.volume
+
     def _process_bar(self, bar: Bar) -> TradeSignal | None:
         """Process completed bar for entry/exit signals."""
         cfg = self._get_cfg()
 
         # Need enough bars for EMA calculation
         if self.emas is None:
+            # self.logger.info(f"Debug: EMAs is None (bars={len(self.bars)})")
             return None
 
         # Update bias
@@ -421,7 +451,9 @@ class EMACloudStrategy(BaseStrategy):
             self.logger.info("=" * 60)
             self.logger.info("[EMA_CLOUD] EXIT SIGNAL - 5-12 cloud violation!")
             self.logger.info(f"  Bar close: {bar.close}")
-            self.logger.info(f"  Fast cloud: {self.emas.fast_cloud_bottom:.2f} - {self.emas.fast_cloud_top:.2f}")
+            self.logger.info(
+                f"  Fast cloud: {self.emas.fast_cloud_bottom:.2f} - {self.emas.fast_cloud_top:.2f}"
+            )
             self.logger.info("=" * 60)
 
             self.state = StrategyState.WAITING_PULLBACK
@@ -435,22 +467,26 @@ class EMACloudStrategy(BaseStrategy):
         # === FILTER CHECKS ===
         # No trade if neutral bias
         if self.bias == MarketBias.NEUTRAL:
+            # self.logger.info("Debug: Bias is NEUTRAL (Trend cloud separation too low or mixed EMAs)")
             self.state = StrategyState.WAITING_PULLBACK
             self.pullback_bar_count = 0
             return None
 
-        # No trade if fast cloud not aligned
         if not self._check_fast_cloud_alignment():
+            # self.logger.info("Filter: Fast cloud not aligned")
             return None
 
         # Check direction filter
         if cfg.direction == "long" and self.bias != MarketBias.BULLISH:
+            # self.logger.info(f"Filter: Long only but bias is {self.bias}")
             return None
         if cfg.direction == "short" and self.bias != MarketBias.BEARISH:
+            # self.logger.info(f"Filter: Short only but bias is {self.bias}")
             return None
 
         # Volume filter
         if not self._check_volume_filter():
+            # self.logger.info("Filter: Low volume")
             return None
 
         # === PULLBACK DETECTION ===
@@ -462,8 +498,7 @@ class EMACloudStrategy(BaseStrategy):
             self.state = StrategyState.PULLBACK_DETECTED
             self.pullback_bar_count = 1
             self.logger.info(
-                f"[EMA_CLOUD] Pullback detected - {self.bias.value} bias | "
-                f"Bar touched fast cloud"
+                f"[EMA_CLOUD] Pullback detected - {self.bias.value} bias | Bar touched fast cloud"
             )
 
         # === ENTRY LOGIC ===
@@ -478,7 +513,6 @@ class EMACloudStrategy(BaseStrategy):
 
             # Check for entry candle
             if self._is_entry_candle(bar) and self._can_trade(bar.timestamp):
-
                 direction = (
                     SignalDirection.LONG
                     if self.bias == MarketBias.BULLISH
@@ -493,8 +527,12 @@ class EMACloudStrategy(BaseStrategy):
                 self.logger.info(f"  Entry price: {bar.close}")
                 self.logger.info(f"  Stop price: {stop_price}")
                 self.logger.info(f"  Pullback bars: {self.pullback_bar_count}")
-                self.logger.info(f"  Trend cloud: {self.emas.trend_cloud_bottom:.2f} - {self.emas.trend_cloud_top:.2f}")
-                self.logger.info(f"  Fast cloud: {self.emas.fast_cloud_bottom:.2f} - {self.emas.fast_cloud_top:.2f}")
+                self.logger.info(
+                    f"  Trend cloud: {self.emas.trend_cloud_bottom:.2f} - {self.emas.trend_cloud_top:.2f}"
+                )
+                self.logger.info(
+                    f"  Fast cloud: {self.emas.fast_cloud_bottom:.2f} - {self.emas.fast_cloud_top:.2f}"
+                )
                 self.logger.info("=" * 60)
 
                 self.state = StrategyState.IN_TRADE

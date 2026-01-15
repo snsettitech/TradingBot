@@ -13,11 +13,15 @@ recipients:
 # Alert Thresholds
 thresholds:
   # Large movement detection
+  send_large_moves: false
   large_move_pct: 1.0  # 1% move triggers alert
   large_move_window_minutes: 5
   
   # Cooldown between alerts (prevent spam)
   min_alert_interval_seconds: 60
+
+  # Periodic updates
+  send_hourly_updates: true
 
 # Session Alerts
 session:

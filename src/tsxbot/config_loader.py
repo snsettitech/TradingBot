@@ -273,6 +273,16 @@ class SweepReclaimStrategyConfig(BaseModel):
     stop_ticks: int = 6
     target_ticks: int = 12
     max_trades: int = 3
+    direction: str = "both"
+
+    @field_validator("direction")
+    @classmethod
+    def validate_direction(cls, v: str) -> str:
+        """Validate direction."""
+        valid = {"long", "short", "both"}
+        if v.lower() not in valid:
+            raise ValueError(f"Direction must be one of {valid}, got: {v}")
+        return v.lower()
 
 
 class BOSPullbackStrategyConfig(BaseModel):
@@ -285,6 +295,16 @@ class BOSPullbackStrategyConfig(BaseModel):
     stop_ticks: int = 4
     target_rr_ratio: float = 2.0
     max_trades: int = 2
+    direction: str = "both"
+
+    @field_validator("direction")
+    @classmethod
+    def validate_direction(cls, v: str) -> str:
+        """Validate direction."""
+        valid = {"long", "short", "both"}
+        if v.lower() not in valid:
+            raise ValueError(f"Direction must be one of {valid}, got: {v}")
+        return v.lower()
 
     @field_validator("entry_trigger")
     @classmethod

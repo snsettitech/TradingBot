@@ -11,7 +11,6 @@ import smtplib
 from dataclasses import dataclass
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List
 
 logger = logging.getLogger(__name__)
 

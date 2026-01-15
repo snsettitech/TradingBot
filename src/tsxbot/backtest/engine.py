@@ -175,9 +175,9 @@ class BacktestEngine:
         self.cumulative_volume = bar.volume
         self.cumulative_tp_vol = bar.typical_price * bar.volume
 
-        # Reset strategy if it has a reset method
-        if hasattr(self.strategy, "reset"):
-            self.strategy.reset()
+        # Strategy reset is handled by strategy itself if needed
+        # if hasattr(self.strategy, "reset"):
+        #     self.strategy.reset()
 
     def _update_session_levels(self, bar: Bar) -> None:
         """Update session high/low and VWAP."""
@@ -226,7 +226,8 @@ class BacktestEngine:
             "regime": self._classify_regime(),
         }
 
-        logger.debug(f"Opened {signal.direction.value} @ {entry_price}")
+        if self.current_position:
+            logger.info(f"Opened {self.current_position['direction']} @ {entry_price}")
 
     def _check_exit_conditions(self, bar: Bar) -> None:
         """Check if stop or target was hit."""
@@ -287,7 +288,7 @@ class BacktestEngine:
         self.trades.append(trade)
         self.current_position = None
 
-        logger.debug(
+        logger.info(
             f"Closed {pos['direction']} @ {exit_price}, P&L: {pnl_ticks} ticks (${pnl_dollars})"
         )
 
@@ -458,7 +459,7 @@ class BacktestEngine:
                         conf = validation.confidence if validation else 0
                         logger.debug(
                             f"[AI REJECTED] {signal.direction.value} @ {bar.close} "
-                            f"confidence={conf}/10 < threshold={confidence_threshold*10}"
+                            f"confidence={conf}/10 < threshold={confidence_threshold * 10}"
                         )
 
         # Close any open position at end

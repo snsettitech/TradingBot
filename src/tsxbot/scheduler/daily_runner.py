@@ -30,6 +30,7 @@ from tsxbot.intelligence.level_store import LevelStore
 from tsxbot.scheduler.alert_engine import Alert, AlertEngine
 from tsxbot.scheduler.email_sender import EmailSender
 from tsxbot.time.session_manager import SessionManager
+from tsxbot.data.tick_archiver import TickArchiver
 
 if TYPE_CHECKING:
     from tsxbot.broker.base import BaseBroker
@@ -47,11 +48,11 @@ AI_CONFIDENCE_THRESHOLD = 0.6
 
 class DailyRunner:
     """
-    Orchestrates daily automated signal generation with AI validation.
+    Orchestrates daily automated signal generation with AI validation and data archival.
 
     Lifecycle:
     1. Initialize before RTH
-    2. Run during RTH
+    2. Run during RTH (archive ticks, generate signals)
     3. AI validates each signal before alerting
     4. Cleanup and report after RTH
     """
@@ -88,6 +89,12 @@ class DailyRunner:
         self.strategy_selector = StrategySelector(self.config)
         self.signal_generator = SignalGenerator(
             flatten_time_str=self.config.session.flatten_time,
+        )
+
+        # Data Archival
+        self.tick_archiver = TickArchiver(
+            data_dir="data/live",
+            enable_supabase=True,  # Auto-push to cloud if available
         )
 
         # AI components
@@ -226,6 +233,9 @@ class DailyRunner:
         # Check for large moves
         self.alert_engine.on_tick(tick)
 
+        # Archive tick data
+        self.tick_archiver.on_tick(tick)
+
         # Store bar data (1-minute aggregation)
         self._bar_data.append((tick.timestamp, tick.price))
 
@@ -304,9 +314,9 @@ class DailyRunner:
                     
                     if validation is None or validation.confidence < AI_CONFIDENCE_THRESHOLD:
                         self._signals_ai_rejected += 1
+                        conf_str = f"{validation.confidence:.0%}" if validation else "N/A"
                         logger.info(
-                            f"Signal rejected by AI: {signal.direction.value} "
-                            f"(confidence: {validation.confidence:.0%} if validation else 'N/A'})"
+                            f"Signal rejected by AI: {signal.direction.value} (confidence: {conf_str})"
                         )
                         return
                     
